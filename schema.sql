@@ -190,6 +190,62 @@ CREATE TABLE `lesson_audit_history` (
   KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课程审核历史表';
 
+-- ====================================================================
+-- 会议模块表
+-- ====================================================================
+
+-- 会议表
+CREATE TABLE `meeting` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '会议主键ID',
+  `uuid` VARCHAR(36) NOT NULL COMMENT '会议唯一标识符',
+  `name` VARCHAR(255) NOT NULL COMMENT '会议名称',
+  `description` TEXT DEFAULT NULL COMMENT '会议内容/描述',
+  `cover_image_url` VARCHAR(500) DEFAULT NULL COMMENT '会议封面图片URL',
+  `creator_id` BIGINT UNSIGNED NOT NULL COMMENT '会议创建者ID (关联 user.id)',
+  `start_time` TIMESTAMP NOT NULL COMMENT '会议开始时间',
+  `end_time` TIMESTAMP NOT NULL COMMENT '会议结束时间',
+  `status` ENUM('pending_review', 'published', 'rejected', 'cancelled', 'completed') NOT NULL DEFAULT 'pending_review' COMMENT '会议状态 (pending_review:待审核, published:已发布, rejected:审核不通过, cancelled:已取消, completed:已完成)',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_meeting_uuid` (`uuid`),
+  KEY `idx_meeting_creator_id` (`creator_id`),
+  KEY `idx_meeting_status` (`status`),
+  KEY `idx_meeting_start_time` (`start_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会议信息表';
+
+-- 会议参会人员表
+CREATE TABLE `meeting_participant` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `meeting_id` BIGINT UNSIGNED NOT NULL COMMENT '会议ID (关联 meeting.id)',
+  `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID (关联 user.id)',
+  `join_reason` TEXT DEFAULT NULL COMMENT '申请参会原因',
+  `status` ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending' COMMENT '参会申请状态 (pending:待处理, approved:已批准, rejected:已拒绝)',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_meeting_user` (`meeting_id`, `user_id`),
+  KEY `idx_participant_meeting_id` (`meeting_id`),
+  KEY `idx_participant_user_id` (`user_id`),
+  KEY `idx_participant_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会议参会人员表';
+
+-- 会议审核历史表
+CREATE TABLE `meeting_audit_history` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '审核记录主键ID',
+  `meeting_id` BIGINT UNSIGNED NOT NULL COMMENT '关联的会议ID',
+  `auditor_id` BIGINT UNSIGNED NOT NULL COMMENT '审核员ID (关联 user.id)',
+  `audit_status` ENUM('approved', 'rejected') NOT NULL COMMENT '审核结果 (approved:通过, rejected:不通过)',
+  `comments` TEXT COMMENT '审核意见或备注',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '审核操作时间',
+  
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_meeting_id` (`meeting_id`),
+  KEY `idx_audit_auditor_id` (`auditor_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会议审核历史表';
+
 -- 外键约束已移除，使用应用层逻辑外键
 -- 逻辑关联关系说明：
 -- user.company_id -> company.id
