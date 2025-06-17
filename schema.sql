@@ -235,6 +235,7 @@ CREATE TABLE `meeting_participant` (
 -- 会议审核历史表
 CREATE TABLE `meeting_audit_history` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '审核记录主键ID',
+  `uuid` VARCHAR(36) NOT NULL COMMENT '参会申请唯一标识符',
   `meeting_id` BIGINT UNSIGNED NOT NULL COMMENT '关联的会议ID',
   `auditor_id` BIGINT UNSIGNED NOT NULL COMMENT '审核员ID (关联 user.id)',
   `audit_status` ENUM('approved', 'rejected') NOT NULL COMMENT '审核结果 (approved:通过, rejected:不通过)',
