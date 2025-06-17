@@ -3,8 +3,8 @@
 -- ====================================================================
 -- 项目名称: TestLinkHub
 -- 创建日期: 2025-06-15
--- 最后更新: 2025-06-15
--- 版本: v1.0.0
+-- 最后更新: 2025-06-17
+-- 版本: v1.0.1
 -- 描述: 包含用户管理、公司管理、新闻发布、课程管理等功能的完整数据库结构
 -- 
 -- 表结构包括:
@@ -138,8 +138,10 @@ CREATE TABLE `lesson` (
   `publisher_id` BIGINT UNSIGNED NOT NULL COMMENT '发布者ID（用户或公司）',
   `image_url` VARCHAR(500) DEFAULT NULL COMMENT '课程封面图片URL',
   `description` TEXT DEFAULT NULL COMMENT '课程描述',
+  `sort_order` INT UNSIGNED DEFAULT 0 COMMENT '课程排序，数值越小越靠前',
+  `author_name` VARCHAR(100) DEFAULT NULL COMMENT '作者名称',
   `visible` TINYINT(1) DEFAULT 1 COMMENT '是否可见（0:不可见, 1:可见）',
-  `status` ENUM('draft', 'published', 'in_progress', 'completed', 'archived') DEFAULT 'draft' COMMENT '课程状态',
+  `status` ENUM('pending_review', 'published', 'rejected', 'archived') NOT NULL DEFAULT 'pending_review' COMMENT '课程状态 (pending_review:待审核, published:已发布, rejected:审核不通过, archived:已归档)',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   
@@ -172,6 +174,21 @@ CREATE TABLE `lesson_resources` (
   KEY `idx_lesson_resources_status` (`status`),
   KEY `idx_lesson_resources_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课程资源表';
+
+-- 课程审核历史表
+CREATE TABLE `lesson_audit_history` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '审核记录主键ID',
+  `lesson_id` BIGINT UNSIGNED NOT NULL COMMENT '关联的课程ID',
+  `auditor_id` BIGINT UNSIGNED NOT NULL COMMENT '审核员ID (关联 user.id)',
+  `audit_status` ENUM('approved', 'rejected') NOT NULL COMMENT '审核结果 (approved:通过, rejected:不通过)',
+  `comments` TEXT COMMENT '审核意见或备注',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '审核操作时间',
+  
+  PRIMARY KEY (`id`),
+  KEY `idx_lesson_id` (`lesson_id`),
+  KEY `idx_auditor_id` (`auditor_id`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课程审核历史表';
 
 -- 外键约束已移除，使用应用层逻辑外键
 -- 逻辑关联关系说明：
