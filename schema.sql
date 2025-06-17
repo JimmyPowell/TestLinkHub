@@ -97,23 +97,37 @@ CREATE TABLE `attachment` (
 
 -- 新闻动态表
 CREATE TABLE `news` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '新闻主键ID',
-  `uuid` VARCHAR(36) NOT NULL COMMENT '新闻唯一标识符',
-  `company_id` BIGINT UNSIGNED NOT NULL COMMENT '发布公司ID',
-  `content_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '内容ID（如果有独立的内容表）',
-  `visible` TINYINT(1) DEFAULT 1 COMMENT '是否可见（0:不可见, 1:可见）',
-  `status` ENUM('draft', 'published', 'archived', 'deleted') DEFAULT 'draft' COMMENT '新闻状态',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '新闻主键ID',
+  `uuid` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '新闻唯一标识符',
+  `company_id` bigint unsigned NOT NULL COMMENT '发布公司ID',
+  `visible` tinyint(1) DEFAULT '1' COMMENT '是否可见（0:不可见, 1:可见）',
+  `status` enum('draft','published','archived','pending','deleted') COLLATE utf8mb4_unicode_ci DEFAULT 'draft' COMMENT '新闻状态',
+  `current_content_id` bigint unsigned DEFAULT NULL COMMENT '当前生效的内容版本ID，引用news_content.id',
+  `pending_content_id` bigint unsigned DEFAULT NULL COMMENT '审核中的内容版本ID，引用news_content.id',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_news_uuid` (`uuid`),
   KEY `idx_news_company_id` (`company_id`),
-  KEY `idx_news_content_id` (`content_id`),
   KEY `idx_news_visible` (`visible`),
   KEY `idx_news_status` (`status`),
   KEY `idx_news_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='新闻动态表';
+
+-- 新闻内容版本表
+CREATE TABLE `news_content` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '内容版本ID',
+  `uuid` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '内容版本唯一标识符',
+  `news_id` bigint unsigned NOT NULL COMMENT '关联新闻ID，引用news.id',
+  `content_url` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '内容URL',
+  `version` int unsigned NOT NULL DEFAULT '1' COMMENT '版本号（从1递增）',
+  `status` enum('draft','active','pending','rejected') COLLATE utf8mb4_unicode_ci DEFAULT 'draft' COMMENT '版本状态：draft=草稿, active=已生效, pending=审核中, rejected=已拒绝',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '版本创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_news_content_uuid` (`uuid`),
+  KEY `idx_news_content_news_id` (`news_id`),
+  KEY `idx_news_content_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='新闻内容版本表';
 
 -- 新闻关联表（中间表）
 CREATE TABLE `news_related` (
@@ -180,6 +194,8 @@ CREATE TABLE `lesson_resources` (
 -- news.company_id -> company.id
 -- news_related.news_id -> news.id
 -- news_related.attachment_id -> attachment.id
+-- news.current_content_id -> news_contact.id
+-- news.pending_content_id -> news_contact.id
 -- lesson.publisher_id -> user.id
 -- lesson_resources.publisher_id -> user.id
 
