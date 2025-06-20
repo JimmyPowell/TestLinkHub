@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tech.cspioneer.backend.entity.dto.request.EmailRequest;
+import tech.cspioneer.backend.entity.dto.request.EnterpriseRegisterRequest;
 import tech.cspioneer.backend.entity.dto.request.IndividualRegisterRequest;
 import tech.cspioneer.backend.entity.dto.request.VerifyCoderequest;
 import tech.cspioneer.backend.exception.VerificationCodeException;
@@ -138,6 +139,9 @@ public class AuthController {
 
     //企业用户注册
 //    @PostMapping("/register/enterprise")
+//    public ResponseEntity<ApiResponse<Void>> registerEnterprise(@RequestBody EnterpriseRegisterRequest enterpriseRegisterRequest) {
+//
+//    }
 
 
 
