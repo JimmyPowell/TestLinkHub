@@ -3,16 +3,25 @@ package tech.cspioneer.backend.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import tech.cspioneer.backend.entity.Company;
 import tech.cspioneer.backend.entity.User;
+import tech.cspioneer.backend.entity.dto.request.CompanyLoginrequest;
 import tech.cspioneer.backend.entity.dto.request.IndividualRegisterRequest;
+import tech.cspioneer.backend.entity.dto.request.EnterpriseRegisterRequest;
+import tech.cspioneer.backend.entity.dto.request.UserLoginRequest;
+import tech.cspioneer.backend.entity.dto.response.LoginResponse;
+import tech.cspioneer.backend.entity.enums.CompanyStatus;
 import tech.cspioneer.backend.entity.enums.UserRole;
 import tech.cspioneer.backend.entity.enums.UserStatus;
 import tech.cspioneer.backend.exception.VerificationCodeException;
+import tech.cspioneer.backend.mapper.CompanyMapper;
 import tech.cspioneer.backend.mapper.UserMapper;
 import tech.cspioneer.backend.service.AuthService;
 import tech.cspioneer.backend.utils.CodeGeneratorUtil;
+import tech.cspioneer.backend.utils.JwtUtils;
 import tech.cspioneer.backend.utils.RedisUtils;
 import tech.cspioneer.backend.utils.SMTPUtils;
 
@@ -25,10 +34,11 @@ public class AuthServiceImpl implements AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
-    // RedisTemplate is no longer needed, RedisUtils is used statically.
     private final SMTPUtils smtpUtils;
     private final UserMapper userMapper;
+    private final CompanyMapper companyMapper;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtUtils jwtUtils;
 
     private static final String VERIFICATION_CODE_KEY_PREFIX = "verify:code:";
     private static final String VERIFIED_USER_KEY_PREFIX = "verified:user:";
@@ -254,5 +264,161 @@ public class AuthServiceImpl implements AuthService {
             log.error("Error during user registration: {}", email, e);
             throw new VerificationCodeException("Registration failed due to system error.", e);
         }
+    }
+
+    @Override
+    public void registerEnterprise(EnterpriseRegisterRequest request) throws VerificationCodeException {
+        log.info("Attempting to register enterprise with request: {}", request);
+
+        // 1. 验证请求参数
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            log.warn("Validation failed: Company contact email is required.");
+            throw new VerificationCodeException("公司联系邮箱是必填项。");
+        }
+        // 移除了对密码的强制校验，因为不再创建用户
+        // if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+        //     log.warn("Validation failed: Admin password is required.");
+        //     throw new VerificationCodeException("管理员密码是必填项。");
+        // }
+        if (request.getName() == null || request.getName().trim().isEmpty()) {
+            log.warn("Validation failed: Company name is required.");
+            throw new VerificationCodeException("公司名称是必填项。");
+        }
+        if (request.getCompanyCode() == null || request.getCompanyCode().trim().isEmpty()) {
+            log.warn("Validation failed: Company code is required.");
+            throw new VerificationCodeException("公司代码是必填项。");
+        }
+        log.info("Request parameters validated successfully for company email: {}", request.getEmail());
+
+        String companyEmail = request.getEmail();
+
+        // 2. 检查邮箱是否已经验证 (此处的邮箱是用于验证操作发起者的，不一定是公司最终的联系邮箱，但当前逻辑是复用的)
+        String verifiedKey = VERIFIED_USER_KEY_PREFIX + companyEmail;
+        String isVerified = RedisUtils.get(verifiedKey, 0);
+        if (isVerified == null || !isVerified.equals("true")) {
+            log.warn("Email used for verification is not verified, cannot register company: {}", companyEmail);
+            throw new VerificationCodeException("请先验证您的邮箱，然后再进行注册。");
+        }
+        log.info("Email {} used for verification is verified.", companyEmail);
+
+        // 3. 检查该邮箱是否已被注册为用户 (根据新需求)
+        User existingUser = userMapper.findByEmail(companyEmail);
+        if (existingUser != null) {
+            log.warn("Email {} is already registered as a user. Cannot proceed with company registration under this email as primary contact if it's a user.", companyEmail);
+            throw new VerificationCodeException("该邮箱已被注册为个人用户，请使用其他邮箱进行公司注册，或联系支持人员。");
+        }
+        log.info("Email {} is not registered as a user, proceeding with company registration.", companyEmail);
+
+        // 4. 检查公司代码是否已被使用
+        Company existingCompanyWithCode = companyMapper.findByCompanyCode(request.getCompanyCode());
+        if (existingCompanyWithCode != null) {
+            log.warn("Company code {} is already in use.", request.getCompanyCode());
+            throw new VerificationCodeException("公司代码已被占用，请输入一个唯一的公司代码。");
+        }
+        log.info("Company code {} is available.", request.getCompanyCode());
+
+        // 5. 检查公司邮箱是否已被其他公司使用 (可选，但推荐)
+        Company existingCompanyWithEmail = companyMapper.findByEmail(companyEmail);
+        if (existingCompanyWithEmail != null) {
+            log.warn("Email {} is already in use by another company.", companyEmail);
+            throw new VerificationCodeException("该邮箱已被其他公司注册，请使用其他邮箱。");
+        }
+        log.info("Email {} is available for company registration.", companyEmail);
+
+
+        // 6. 创建并保存公司实体
+        Company newCompany = Company.builder()
+                .uuid(UUID.randomUUID().toString())
+                .name(request.getName())
+                .email(companyEmail) // 使用请求中的 email 作为公司的联系邮箱
+                .password(passwordEncoder.encode(request.getPassword())) // 加密并设置公司密码
+                .phoneNumber(request.getPhoneNumber())
+                .address(request.getAddress())
+                .avatarUrl(request.getAvatarUrl())
+                .companyCode(request.getCompanyCode())
+                .status(CompanyStatus.ACTIVE) // 公司默认为激活状态
+                .description(request.getDescription())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        log.info("Attempting to insert new company: {}", newCompany);
+
+        try {
+            companyMapper.insert(newCompany);
+            log.info("Successfully created new company: {}, ID: {}. Email: {}", newCompany.getName(), newCompany.getId(), newCompany.getEmail());
+
+            // 7. 注册成功后，可以删除Redis中的验证状态
+            RedisUtils.del(verifiedKey, 0);
+            log.info("Removed verification status from Redis for email: {}", companyEmail);
+
+        } catch (Exception e) {
+            log.error("Failed to create company '{}'. Request: {}. Exception: ", newCompany.getName(), request, e);
+            throw new VerificationCodeException("公司注册失败，请稍后重试。", e);
+        }
+        log.info("Enterprise registration completed successfully for company: {}. Email: {}", newCompany.getName(), newCompany.getEmail());
+    }
+
+    @Override
+    public LoginResponse userLogin(UserLoginRequest loginRequest) {
+        log.info("Attempting login for user with email: {}", loginRequest.getEmail());
+
+        // 1. 根据邮箱查找用户
+        User user = userMapper.findByEmail(loginRequest.getEmail());
+        if (user == null) {
+            log.warn("Login failed: User not found with email: {}", loginRequest.getEmail());
+            throw new BadCredentialsException("用户名或密码错误");
+        }
+
+        // 2. 校验密码
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            log.warn("Login failed: Invalid password for user with email: {}", loginRequest.getEmail());
+            throw new BadCredentialsException("用户名或密码错误");
+        }
+
+        // 3. 检查用户状态
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            log.warn("Login failed: User account is not active. Status: {}", user.getStatus());
+            throw new BadCredentialsException("用户账户已被锁定或未激活");
+        }
+
+        // 4. 生成Token
+        String accessToken = jwtUtils.generateAccessToken(user.getUuid(), user.getRole().name());
+        // Refresh token 版本可以存储在数据库中，用于强制下线，这里暂时用 1
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUuid(), user.getRole().name(), 1);
+
+        log.info("Login successful for user: {}", user.getEmail());
+        return new LoginResponse(accessToken, refreshToken);
+    }
+
+    @Override
+    public LoginResponse companyLogin(CompanyLoginrequest loginRequest) {
+        log.info("Attempting login for company with email: {}", loginRequest.getEmail());
+
+        // 1. 根据邮箱查找公司
+        Company company = companyMapper.findByEmail(loginRequest.getEmail());
+        if (company == null) {
+            log.warn("Login failed: Company not found with email: {}", loginRequest.getEmail());
+            throw new BadCredentialsException("公司邮箱或密码错误");
+        }
+
+        // 2. 校验密码
+        // 注意：公司注册时也需要对密码进行加密存储
+        if (company.getPassword() == null || !passwordEncoder.matches(loginRequest.getPassword(), company.getPassword())) {
+            log.warn("Login failed: Invalid password for company with email: {}", loginRequest.getEmail());
+            throw new BadCredentialsException("公司邮箱或密码错误");
+        }
+
+        // 3. 检查公司状态
+        if (company.getStatus() != CompanyStatus.ACTIVE) {
+            log.warn("Login failed: Company account is not active. Status: {}", company.getStatus());
+            throw new BadCredentialsException("公司账户已被锁定或未激活");
+        }
+
+        // 4. 生成Token
+        String accessToken = jwtUtils.generateAccessToken(company.getUuid(), "COMPANY");
+        String refreshToken = jwtUtils.generateRefreshToken(company.getUuid(), "COMPANY", 1);
+
+        log.info("Login successful for company: {}", company.getEmail());
+        return new LoginResponse(accessToken, refreshToken);
     }
 }

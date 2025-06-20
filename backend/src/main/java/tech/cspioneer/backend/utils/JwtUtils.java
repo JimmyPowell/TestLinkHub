@@ -1,5 +1,8 @@
 package tech.cspioneer.backend.utils;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -9,44 +12,45 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 
 /**
- * Minimal JWT encoder/decoder using HMAC-SHA256.
+ * Minimal JWT encoder/decoder using HMAC-SHA256, adapted for Spring Boot.
  */
+@Component
 public final class JwtUtils {
     private static final String HMAC_ALG = "HmacSHA256";
-    private static final AtomicReference<String> PRIVATE_KEY = new AtomicReference<>();
-    private static final String CONFIG_PATH = "src/main/resources/application.yml";
 
-    private JwtUtils() {
-    }
+    @Value("${jwt.secret}")
+    private String privateKey;
+
+    @Value("${jwt.access-token-expiration-ms}")
+    private long accessTokenExpirationMs;
+
+    @Value("${jwt.refresh-token-expiration-ms}")
+    private long refreshTokenExpirationMs;
 
     /**
-     * Generate a JWT access token.
+     * Generate a JWT access token using configured expiration time.
      */
-    public static String generateAccessToken(String userUuid, String identity, long expireMillis) {
+    public String generateAccessToken(String userUuid, String identity) {
         Map<String, Object> payload = new HashMap<>();
         long now = System.currentTimeMillis();
         payload.put("uid", userUuid);
         payload.put("identity", identity);
-        payload.put("exp", now + expireMillis);
+        payload.put("exp", now + accessTokenExpirationMs);
         payload.put("iat", now);
         return encode(payload);
     }
 
     /**
-     * Generate a JWT refresh token with a version number.
+     * Generate a JWT refresh token with a version number, using configured expiration time.
      */
-    public static String generateRefreshToken(String userUuid, String identity, long expireMillis, int version) {
+    public String generateRefreshToken(String userUuid, String identity, int version) {
         Map<String, Object> payload = new HashMap<>();
         long now = System.currentTimeMillis();
         payload.put("uid", userUuid);
         payload.put("identity", identity);
-        payload.put("exp", now + expireMillis);
+        payload.put("exp", now + refreshTokenExpirationMs);
         payload.put("iat", now);
         payload.put("ver", version);
         return encode(payload);
@@ -55,10 +59,10 @@ public final class JwtUtils {
     /**
      * Refresh a refresh token by updating its expiration time.
      */
-    public static String refreshToken(String refreshToken, long newExpireMillis) {
+    public String refreshToken(String refreshToken) {
         Map<String, Object> payload = decode(refreshToken);
         long now = System.currentTimeMillis();
-        payload.put("exp", now + newExpireMillis);
+        payload.put("exp", now + refreshTokenExpirationMs);
         payload.put("iat", now);
         return encode(payload);
     }
@@ -66,7 +70,7 @@ public final class JwtUtils {
     /**
      * Encode payload to a JWT string.
      */
-    public static String encode(Map<String, Object> payload) {
+    public String encode(Map<String, Object> payload) {
         String headerJson = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
         String payloadJson = toJson(payload);
         String headerBase = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
@@ -78,7 +82,7 @@ public final class JwtUtils {
     /**
      * Decode a JWT string into a payload map.
      */
-    public static Map<String, Object> decode(String token) {
+    public Map<String, Object> decode(String token) {
         String[] parts = token.split("\\.");
         if (parts.length != 3) {
             throw new IllegalArgumentException("Invalid token");
@@ -87,10 +91,10 @@ public final class JwtUtils {
         return parseJson(payloadJson);
     }
 
-    private static String sign(String data) {
+    private String sign(String data) {
         try {
             Mac mac = Mac.getInstance(HMAC_ALG);
-            mac.init(new SecretKeySpec(getPrivateKey().getBytes(StandardCharsets.UTF_8), HMAC_ALG));
+            mac.init(new SecretKeySpec(privateKey.getBytes(StandardCharsets.UTF_8), HMAC_ALG));
             byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return base64UrlEncode(raw);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
@@ -98,99 +102,45 @@ public final class JwtUtils {
         }
     }
 
-    private static String getPrivateKey() {
-        if (PRIVATE_KEY.get() == null) {
-            synchronized (PRIVATE_KEY) {
-                if (PRIVATE_KEY.get() == null) {
-                    PRIVATE_KEY.set(loadPrivateKey());
-                }
-            }
-        }
-        return PRIVATE_KEY.get();
-    }
-
-    private static String loadPrivateKey() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(CONFIG_PATH))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.startsWith("privateKey")) {
-                    String[] arr = line.split(":");
-                    if (arr.length > 1) {
-                        return arr[1].trim();
-                    }
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read config: " + CONFIG_PATH, e);
-        }
-        throw new IllegalStateException("privateKey not found in config");
-    }
-
-    private static String base64UrlEncode(byte[] bytes) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private static byte[] base64UrlDecode(String str) {
-        return Base64.getUrlDecoder().decode(str);
-    }
-
-    // Very small JSON writer suitable for simple maps with primitive values.
-    private static String toJson(Map<String, Object> map) {
-        StringBuilder sb = new StringBuilder();
-        sb.append('{');
-        boolean first = true;
-        for (Map.Entry<String, Object> e : map.entrySet()) {
-            if (!first) {
-                sb.append(',');
-            }
-            first = false;
-            sb.append('"').append(e.getKey()).append('"').append(':');
-            Object v = e.getValue();
-            if (v instanceof Number) {
-                sb.append(v);
+    private String toJson(Map<String, Object> payload) {
+        StringBuilder json = new StringBuilder("{");
+        for (Map.Entry<String, Object> entry : payload.entrySet()) {
+            json.append("\"").append(entry.getKey()).append("\":");
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                json.append("\"").append(value).append("\",");
             } else {
-                sb.append('"').append(Objects.toString(v)).append('"');
+                json.append(value).append(",");
             }
         }
-        sb.append('}');
-        return sb.toString();
+        if (json.length() > 1) {
+            json.setLength(json.length() - 1);
+        }
+        json.append("}");
+        return json.toString();
     }
 
-    // Very small JSON parser supporting flat objects with string/number values.
-    private static Map<String, Object> parseJson(String json) {
+    private Map<String, Object> parseJson(String json) {
         Map<String, Object> map = new HashMap<>();
-        String content = json.trim();
-        if (content.startsWith("{") && content.endsWith("}")) {
-            content = content.substring(1, content.length() - 1).trim();
-        }
-        if (content.isEmpty()) {
-            return map;
-        }
-        String[] parts = content.split(",");
-        for (String part : parts) {
-            String[] kv = part.split(":", 2);
-            if (kv.length == 2) {
-                String key = trimQuotes(kv[0].trim());
-                String value = kv[1].trim();
-                if (value.startsWith("\"") && value.endsWith("\"")) {
-                    map.put(key, trimQuotes(value));
-                } else {
-                    try {
-                        map.put(key, Long.parseLong(value));
-                    } catch (NumberFormatException e) {
-                        map.put(key, value);
-                    }
-                }
+        String[] pairs = json.substring(1, json.length() - 1).split(",");
+        for (String pair : pairs) {
+            String[] keyValue = pair.split(":", 2);
+            String key = keyValue[0].replace("\"", "").trim();
+            String valueStr = keyValue[1].trim();
+            if (valueStr.startsWith("\"")) {
+                map.put(key, valueStr.substring(1, valueStr.length() - 1));
+            } else {
+                map.put(key, Long.parseLong(valueStr));
             }
         }
         return map;
     }
 
-    private static String trimQuotes(String str) {
-        if (str.startsWith("\"") && str.endsWith("\"")) {
-            return str.substring(1, str.length() - 1);
-        }
-        return str;
+    private String base64UrlEncode(byte[] bytes) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private byte[] base64UrlDecode(String str) {
+        return Base64.getUrlDecoder().decode(str);
     }
 }

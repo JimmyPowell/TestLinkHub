@@ -2,11 +2,11 @@ package tech.cspioneer.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
-import tech.cspioneer.backend.entity.dto.request.EmailRequest;
-import tech.cspioneer.backend.entity.dto.request.EnterpriseRegisterRequest;
-import tech.cspioneer.backend.entity.dto.request.IndividualRegisterRequest;
-import tech.cspioneer.backend.entity.dto.request.VerifyCoderequest;
+import tech.cspioneer.backend.entity.User;
+import tech.cspioneer.backend.entity.dto.request.*;
+import tech.cspioneer.backend.entity.dto.response.LoginResponse;
 import tech.cspioneer.backend.exception.VerificationCodeException;
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.service.AuthService;
@@ -59,7 +59,7 @@ public class AuthController {
         if (!email.matches(emailRegex)) {
             return ResponseEntity.badRequest().body(ApiResponse.error(400, "Invalid email format"));
         }
-
+        //>TODO 检查重复
         try {
             authService.generateAndSendVerificationCode(email);
             return ResponseEntity.ok(ApiResponse.success(200, "Verification code sent successfully. Please check your email.", null));
@@ -138,31 +138,55 @@ public class AuthController {
 
 
     //企业用户注册
-//    @PostMapping("/register/enterprise")
-//    public ResponseEntity<ApiResponse<Void>> registerEnterprise(@RequestBody EnterpriseRegisterRequest enterpriseRegisterRequest) {
-//
-//    }
+    @PostMapping("/register/enterprise")
+    public ResponseEntity<ApiResponse<Void>> registerEnterprise(@RequestBody EnterpriseRegisterRequest enterpriseRegisterRequest) {
+        try {
+            authService.registerEnterprise(enterpriseRegisterRequest);
+            return ResponseEntity.ok(ApiResponse.success(200, "公司及管理员账户注册成功！", null));
+        } catch (VerificationCodeException e) {
+            // 捕获自定义的业务异常
+            return ResponseEntity.ok(ApiResponse.error(4001, e.getMessage()));
+        } catch (Exception e) {
+            // 捕获其他意外的系统异常
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, e.getMessage()));
+        }
+    } //>TODO:修复状态穿透的问题
 
 
 
-
-
-
-
-    //登录
-
+    //登录，分为个人用户登陆或超级管理员登陆、公司登陆两个端点
+    @PostMapping("/login/user")
+    public ResponseEntity<ApiResponse<LoginResponse>> userLogin(@RequestBody UserLoginRequest loginRequest) {
+        try {
+            LoginResponse loginResponse = authService.userLogin(loginRequest);
+            return ResponseEntity.ok(ApiResponse.success(200, "登录成功！", loginResponse));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, e.getMessage()));
+        } catch (Exception e) {
+            // 捕获其他意外的系统异常
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "登录时发生意外错误。"));
+        }
+    }
+    
+    @PostMapping("/login/company")
+    public ResponseEntity<ApiResponse<LoginResponse>> companyLogin(@RequestBody CompanyLoginrequest loginRequest) {
+        try {
+            LoginResponse loginResponse = authService.companyLogin(loginRequest);
+            return ResponseEntity.ok(ApiResponse.success(200, "登录成功！", loginResponse));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, e.getMessage()));
+        } catch (Exception e) {
+            // 捕获其他意外的系统异常
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, e.getMessage()));
+        }
+    }
 
     //退出
 
-
     //忘记密码
-
 
     //刷新令牌
 
-
     //修改密码
-
-
 
 }
