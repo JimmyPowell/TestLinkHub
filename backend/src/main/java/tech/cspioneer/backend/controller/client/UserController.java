@@ -13,7 +13,7 @@ public class UserController {
 
 
     //用户获取自身信息
-    public ResponseEntity
+//    public ResponseEntity
 
     //用户修改自身信息
 
