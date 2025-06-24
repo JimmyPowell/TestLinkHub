@@ -10,6 +10,12 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -34,8 +40,22 @@ public class SecurityConfig {
      * @throws Exception 如果配置出错
      */
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:5173")); // Allow frontend origin
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            // 启用CORS
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             // 禁用 CSRF 保护，因为我们使用的是无状态 API
             .csrf(AbstractHttpConfigurer::disable)
             // 配置会话管理，使用无状态会话
@@ -52,7 +72,8 @@ public class SecurityConfig {
                     .requestMatchers("/api/auth/register/individual").permitAll()
                 .requestMatchers("/api/auth/register/individual").permitAll()
                 .requestMatchers("/api/auth/register/enterprise").permitAll() // 预留企业注册端点
-                .requestMatchers("/api/auth/login").permitAll() // 预留登录端点
+                .requestMatchers("/api/auth/login/user").permitAll()
+                .requestMatchers("/api/auth/login/company").permitAll()
                 .requestMatchers("/api/auth/forgot-password").permitAll() // 预留忘记密码端点
                 // 允许所有人访问 Swagger UI 和 API 文档
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -60,6 +81,8 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 // 配置管理员通知端点权限
                 .requestMatchers("/api/admin/notifications/**").hasAuthority("ADMIN")
+                // 配置测试端点权限
+                .requestMatchers("/api/test/company-only").hasAuthority("COMPANY")
                 // 其他所有请求需要认证
                 .anyRequest().authenticated()
             )

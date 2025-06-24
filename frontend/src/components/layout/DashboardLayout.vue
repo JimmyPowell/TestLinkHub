@@ -9,30 +9,30 @@
       </div>
       <el-menu
         router
-        default-active="/"
+        :default-active="$route.path"
         class="sidebar-menu"
         background-color="#ffffff"
         text-color="#333333"
         active-text-color="#409EFF">
-        <el-menu-item index="/dashboard">
+        <el-menu-item index="/dashboard/home">
           <el-icon><component is="House" /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        <el-menu-item index="/dashboard/projects">
-          <el-icon><component is="Menu" /></el-icon>
-          <span>项目管理</span>
+        <el-menu-item index="/dashboard/news">
+          <el-icon><component is="Collection" /></el-icon>
+          <span>新闻动态</span>
         </el-menu-item>
-        <el-menu-item index="/dashboard/testcases">
-          <el-icon><component is="Document" /></el-icon>
-          <span>测试用例</span>
+        <el-menu-item index="/dashboard/courses">
+          <el-icon><component is="Reading" /></el-icon>
+          <span>课程管理</span>
         </el-menu-item>
-        <el-menu-item index="/dashboard/reports">
-          <el-icon><component is="PieChart" /></el-icon>
-          <span>测试报告</span>
+        <el-menu-item index="/dashboard/meetings">
+          <el-icon><component is="VideoCamera" /></el-icon>
+          <span>会议管理</span>
         </el-menu-item>
-        <el-menu-item index="/dashboard/settings">
-          <el-icon><component is="Setting" /></el-icon>
-          <span>系统设置</span>
+        <el-menu-item index="/dashboard/members">
+          <el-icon><component is="User" /></el-icon>
+          <span>成员管理</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -80,12 +80,14 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useAuthStore } from '../../store/auth';
 
 const router = useRouter();
-const userName = ref('管理员');
+const authStore = useAuthStore();
+const userName = ref('管理员'); // This could be replaced with data from authStore.user
 
 const goToProfile = () => {
-  router.push('/dashboard/profile');
+  router.push('/dashboard/profile'); // Assuming a profile page exists
 };
 
 const goToSettings = () => {
@@ -98,17 +100,10 @@ const logout = () => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    // 清除登录状态
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    
-    // 提示退出成功
+    authStore.logout();
     ElMessage.success('退出登录成功');
-    
-    // 跳转到登录页
-    router.push('/');
   }).catch(() => {
-    // 取消退出
+    // Cancelled
   });
 };
 </script>
@@ -231,4 +226,4 @@ const logout = () => {
   width: 3px;
   background-color: #1890ff;
 }
-</style> 
+</style>

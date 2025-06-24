@@ -31,11 +31,11 @@
 
 <script setup>
 import { reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import { useAuthStore } from '../store/auth';
 
-const router = useRouter();
 const loading = ref(false);
+const authStore = useAuthStore();
 
 const form = reactive({
   email: '',
@@ -51,24 +51,15 @@ const login = async () => {
   loading.value = true;
   
   try {
-    // 模拟登录API调用
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // 成功登录后保存token
-    localStorage.setItem('token', 'mock-token-12345');
-    localStorage.setItem('user', JSON.stringify({
-      name: '管理员',
+    await authStore.login({
       email: form.email,
-      avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'
-    }));
-    
+      password: form.password,
+    });
     ElMessage.success('登录成功');
-    
-    // 跳转到仪表盘
-    router.push('/dashboard');
   } catch (error) {
     console.error('登录失败:', error);
-    ElMessage.error('登录失败，请检查邮箱和密码');
+    const errorMessage = error.response?.data?.message || '登录失败，请检查邮箱和密码';
+    ElMessage.error(errorMessage);
   } finally {
     loading.value = false;
   }
@@ -176,4 +167,4 @@ const login = async () => {
     padding: 15px 0;
   }
 }
-</style> 
+</style>

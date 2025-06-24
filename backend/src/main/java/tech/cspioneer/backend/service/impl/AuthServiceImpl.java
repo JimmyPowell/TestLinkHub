@@ -419,6 +419,8 @@ public class AuthServiceImpl implements AuthService {
         String refreshToken = jwtUtils.generateRefreshToken(company.getUuid(), "COMPANY", 1);
 
         log.info("Login successful for company: {}", company.getEmail());
+        System.out.println("accessToken:"+accessToken);
+        System.out.println("refreshToken:"+refreshToken);
         return new LoginResponse(accessToken, refreshToken);
     }
 }

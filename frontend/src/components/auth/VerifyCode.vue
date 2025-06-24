@@ -57,9 +57,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue';
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import authService from '../../services/authService';
 
 const router = useRouter();
 const hiddenInput = ref(null);
@@ -129,13 +130,13 @@ const resendCode = async () => {
   
   try {
     loading.value = true;
-    // 这里应该调用后端重新发送验证码的API
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API调用
+    await authService.generateVerifyCode(email.value);
     ElMessage.success('验证码已重新发送');
     startTimer();
   } catch (error) {
     console.error('重新发送验证码失败:', error);
-    ElMessage.error('重新发送验证码失败，请重试');
+    const errorMessage = error.response?.data?.message || '重新发送验证码失败，请重试';
+    ElMessage.error(errorMessage);
   } finally {
     loading.value = false;
   }
@@ -151,8 +152,7 @@ const verifyCode = async () => {
   try {
     loading.value = true;
     
-    // 这里应该调用后端验证验证码的API
-    await new Promise(resolve => setTimeout(resolve, 1500)); // 模拟API调用
+    await authService.verifyCode(email.value, verificationCode.value);
     
     // 存储验证码，以便后续步骤使用
     localStorage.setItem('verificationCode', verificationCode.value);
@@ -163,7 +163,8 @@ const verifyCode = async () => {
     router.push('/register/company-info');
   } catch (error) {
     console.error('验证码验证失败:', error);
-    ElMessage.error('验证码错误或已过期，请重试');
+    const errorMessage = error.response?.data?.message || '验证码错误或已过期，请重试';
+    ElMessage.error(errorMessage);
   } finally {
     loading.value = false;
   }

@@ -8,22 +8,20 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tech.cspioneer.backend.utils.JwtUtils;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
-
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
-    private final UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(
@@ -46,22 +44,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             Map<String, Object> payload = jwtUtils.decode(jwt);
             userUuid = (String) payload.get("uid");
+            String identity = (String) payload.get("identity");
 
             // Validate token expiration
             Long exp = (Long) payload.get("exp");
-            if (exp == null || exp < System.currentTimeMillis()) {
+            if (exp == null || exp * 1000 < System.currentTimeMillis()) { // exp is in seconds, System.currentTimeMillis() is in milliseconds
                 // Token is expired, proceed without setting authentication
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            if (userUuid != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userUuid);
-
+            if (userUuid != null && identity != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                // Create authority list directly from the 'identity' claim in the token
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(identity);
+                
+                // Create authentication token without querying the database
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
+                        userUuid, // The principal can be the UUID string
                         null,
-                        userDetails.getAuthorities()
+                        Collections.singletonList(authority)
                 );
                 authToken.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request)

@@ -145,7 +145,7 @@ public class AuthController {
             return ResponseEntity.ok(ApiResponse.success(200, "公司及管理员账户注册成功！", null));
         } catch (VerificationCodeException e) {
             // 捕获自定义的业务异常
-            return ResponseEntity.ok(ApiResponse.error(4001, e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error(4001, e.getMessage()));
         } catch (Exception e) {
             // 捕获其他意外的系统异常
             return ResponseEntity.internalServerError().body(ApiResponse.error(5000, e.getMessage()));

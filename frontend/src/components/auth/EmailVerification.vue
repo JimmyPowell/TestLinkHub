@@ -34,6 +34,7 @@
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import authService from '../../services/authService';
 
 const router = useRouter();
 const formRef = ref(null);
@@ -59,19 +60,19 @@ const sendVerificationCode = async () => {
   try {
     loading.value = true;
     
-    // 这里应该调用后端发送验证码的API
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API调用
+    await authService.generateVerifyCode(form.email);
     
     // 存储邮箱，以便后续步骤使用
     localStorage.setItem('registerEmail', form.email);
 
-    ElMessage.success('验证码已发送');
+    ElMessage.success('验证码已发送，请注意查收');
     
     // 跳转到输入验证码的页面
     router.push('/register/verify-code');
   } catch (error) {
     console.error('发送验证码失败:', error);
-    ElMessage.error('发送验证码失败，请重试');
+    const errorMessage = error.response?.data?.message || '发送验证码失败，请重试';
+    ElMessage.error(errorMessage);
   } finally {
     loading.value = false;
   }
@@ -114,4 +115,4 @@ const sendVerificationCode = async () => {
     max-width: 450px;
   }
 }
-</style> 
+</style>

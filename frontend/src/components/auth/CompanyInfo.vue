@@ -1,11 +1,16 @@
 <template>
-  <el-card class="register-card" shadow="never">
-    <h2 class="register-title">完善企业信息</h2>
+  <div class="scroll-container">
+    <el-card class="register-card" shadow="never">
+      <h2 class="register-title">完善企业信息</h2>
 
     <el-form @submit.prevent="submitCompanyInfo" :model="form" :rules="rules" ref="formRef" label-position="top">
       <!-- 两列布局 -->
       <div class="form-row">
         <div class="form-col">
+          <el-form-item label="注册邮箱">
+            <el-input :value="email" disabled></el-input>
+          </el-form-item>
+
           <el-form-item label="公司名称" prop="companyName">
             <el-input v-model="form.companyName" placeholder="请输入公司名称"></el-input>
           </el-form-item>
@@ -13,12 +18,13 @@
           <el-form-item label="公司地址" prop="companyAddress">
             <el-input v-model="form.companyAddress" placeholder="请输入公司地址"></el-input>
           </el-form-item>
+          
+          <el-form-item label="统一社会信用代码" prop="companyCode">
+            <el-input v-model="form.companyCode" placeholder="请输入统一社会信用代码"></el-input>
+          </el-form-item>
         </div>
         
         <div class="form-col">
-          <el-form-item label="联系人姓名" prop="contactName">
-            <el-input v-model="form.contactName" placeholder="请输入联系人姓名"></el-input>
-          </el-form-item>
 
           <el-form-item label="联系电话" prop="contactPhone">
             <el-input v-model="form.contactPhone" placeholder="请输入联系电话"></el-input>
@@ -75,13 +81,15 @@
         <span class="back-text">返回上一步</span>
       </el-link>
     </div>
-  </el-card>
+    </el-card>
+  </div>
 </template>
 
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import authService from '../../services/authService';
 
 const router = useRouter();
 const formRef = ref(null);
@@ -96,7 +104,7 @@ const verificationCode = localStorage.getItem('verificationCode') || '';
 const form = reactive({
   companyName: '',
   companyAddress: '',
-  contactName: '',
+  companyCode: '',
   contactPhone: '',
   password: '',
   confirmPassword: ''
@@ -185,9 +193,8 @@ const rules = {
   companyAddress: [
     { required: true, message: '请输入公司地址', trigger: 'blur' }
   ],
-  contactName: [
-    { required: true, message: '请输入联系人姓名', trigger: 'blur' },
-    { min: 2, max: 20, message: '联系人姓名长度应在2到20个字符之间', trigger: 'blur' }
+  companyCode: [
+    { required: true, message: '请输入统一社会信用代码', trigger: 'blur' }
   ],
   contactPhone: [
     { required: true, message: '请输入联系电话', trigger: 'blur' },
@@ -214,16 +221,17 @@ const submitCompanyInfo = async () => {
 
     // 构建注册请求数据
     const registerData = {
-      email,
-      verificationCode,
-      ...form
+      name: form.companyName,
+      address: form.companyAddress,
+      companyCode: form.companyCode,
+      phoneNumber: form.contactPhone,
+      email: email,
+      password: form.password,
     };
     
-    // 删除确认密码字段
-    delete registerData.confirmPassword;
-    
-    // 这里应该调用后端注册API
-    await new Promise(resolve => setTimeout(resolve, 1500)); // 模拟API调用
+    console.log('Sending registration data:', registerData);
+
+    await authService.registerEnterprise(registerData);
     
     // 清除本地存储的注册过程数据
     localStorage.removeItem('registerEmail');
@@ -235,7 +243,8 @@ const submitCompanyInfo = async () => {
     router.push('/');
   } catch (error) {
     console.error('注册失败:', error);
-    ElMessage.error(error?.message || '注册失败，请重试');
+    const errorMessage = error.response?.data?.message || '注册失败，请重试';
+    ElMessage.error(errorMessage);
   } finally {
     loading.value = false;
   }
@@ -251,10 +260,17 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.scroll-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px 0;
+}
+
 .register-card {
   width: 700px;
   padding: 30px 50px 40px;
-  margin: 20px auto;
+  margin: 0 auto;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
   background-color: #fff;

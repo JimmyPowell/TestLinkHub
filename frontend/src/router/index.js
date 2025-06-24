@@ -58,28 +58,28 @@ const routes = [
         meta: { title: '首页' }
       },
       {
-        path: 'projects',
-        name: 'ProjectList',
-        component: ProjectList,
-        meta: { title: '项目管理' }
+        path: 'news',
+        name: 'News',
+        component: () => import('../views/dashboard/News.vue'),
+        meta: { title: '新闻动态' }
       },
       {
-        path: 'testcases',
-        name: 'TestCases',
-        component: () => import('../views/dashboard/TestCases.vue'),
-        meta: { title: '测试用例' }
+        path: 'courses',
+        name: 'Courses',
+        component: () => import('../views/dashboard/Courses.vue'),
+        meta: { title: '课程管理' }
       },
       {
-        path: 'reports',
-        name: 'Reports',
-        component: () => import('../views/dashboard/Reports.vue'),
-        meta: { title: '测试报告' }
+        path: 'meetings',
+        name: 'Meetings',
+        component: () => import('../views/dashboard/Meetings.vue'),
+        meta: { title: '会议管理' }
       },
       {
-        path: 'settings',
-        name: 'Settings',
-        component: () => import('../views/dashboard/Settings.vue'),
-        meta: { title: '系统设置' }
+        path: 'members',
+        name: 'Members',
+        component: () => import('../views/dashboard/Members.vue'),
+        meta: { title: '成员管理' }
       }
     ]
   },
@@ -96,8 +96,10 @@ const router = createRouter({
   routes
 })
 
+import { useAuthStore } from '../store/auth';
+
 // 路由守卫，可以添加导航逻辑
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // 设置页面标题
   if (to.meta.title) {
     document.title = `${to.meta.title} - 测联汇`
@@ -105,16 +107,20 @@ router.beforeEach((to, from, next) => {
     document.title = '测联汇'
   }
   
-  // 检查是否需要登录验证
-  const publicPages = ['/', '/register', '/register/email', '/register/verify-code', '/register/company-info']
-  const authRequired = !publicPages.includes(to.path)
-  const loggedIn = localStorage.getItem('token')
-  
-  if (authRequired && !loggedIn) {
-    next('/')
-  } else {
-    next()
-  }
-})
+  const authStore = useAuthStore();
+  const publicPages = ['/', '/register', '/register/email', '/register/verify-code', '/register/company-info'];
+  const authRequired = !publicPages.includes(to.path);
 
-export default router 
+  // This is a simplified guard. For a full implementation, we'd verify the token with the backend.
+  // For now, we'll trust the token in localStorage and the state in Pinia.
+  if (authRequired && !authStore.isAuthenticated) {
+    // If the user is not authenticated and the page requires auth, redirect to login.
+    // A more robust implementation would try to verify the token with a backend call here.
+    // e.g., if (authStore.accessToken && !authStore.user) { await authStore.fetchUser(); }
+    next('/');
+  } else {
+    next();
+  }
+});
+
+export default router

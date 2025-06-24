@@ -19,12 +19,20 @@ public class TestController {
      * @return 包含用户UUID的响应
      */
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<String>> getMyUuid(@AuthenticationPrincipal UserDetails userDetails) {
-        // 如果token无效或未提供，JwtAuthenticationFilter会拦截请求，
-        // 根本不会执行到这里的代码。
-        // 如果执行到这里，说明认证成功。
-        // userDetails.getUsername() 在我们的实现中返回的是用户的UUID。
-        String userUuid = userDetails.getUsername();
+    public ResponseEntity<ApiResponse<String>> getMyUuid(@AuthenticationPrincipal String userUuid) {
+        // 在无状态JWT实现中，Principal直接就是用户的UUID字符串
         return ResponseEntity.ok(ApiResponse.success(200, "Successfully authenticated.", userUuid));
+    }
+
+    /**
+     * 一个只有COMPANY身份才能访问的端点。
+     * @param companyUuid 由JwtAuthenticationFilter注入的当前公司UUID
+     * @return 包含公司UUID的响应
+     */
+    @GetMapping("/company-only")
+    public ResponseEntity<ApiResponse<String>> getCompanyOnly(@AuthenticationPrincipal String companyUuid) {
+        // SecurityConfig中配置了此端点需要 "COMPANY" 权限
+        // 如果能执行到这里，说明权限验证通过
+        return ResponseEntity.ok(ApiResponse.success(200, "Access granted for company.", companyUuid));
     }
 }
