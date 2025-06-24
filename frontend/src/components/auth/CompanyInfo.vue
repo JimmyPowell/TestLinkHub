@@ -1,5 +1,5 @@
 <template>
-  <el-card class="register-card">
+  <el-card class="register-card" shadow="never">
     <h2 class="register-title">完善企业信息</h2>
 
     <el-form @submit.prevent="submitCompanyInfo" :model="form" :rules="rules" ref="formRef" label-position="top">
@@ -59,7 +59,7 @@
         </div>
       </div>
 
-      <el-form-item>
+      <div class="button-container">
         <el-button 
           type="primary" 
           @click="submitCompanyInfo" 
@@ -67,11 +67,13 @@
           :loading="loading">
           提交注册
         </el-button>
-      </el-form-item>
+      </div>
     </el-form>
 
     <div class="navigation-links">
-      <el-link type="info" @click="$router.push('/register/verify-code')">返回上一步</el-link>
+      <el-link type="info" @click="$router.push('/register/verify-code')" :underline="false">
+        <span class="back-text">返回上一步</span>
+      </el-link>
     </div>
   </el-card>
 </template>
@@ -251,10 +253,11 @@ onMounted(() => {
 <style scoped>
 .register-card {
   width: 700px;
-  padding: 30px 50px;
+  padding: 30px 50px 40px;
   margin: 20px auto;
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+  background-color: #fff;
 }
 
 .register-title {
@@ -277,13 +280,31 @@ onMounted(() => {
   min-width: 280px;
 }
 
+.button-container {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
 .next-button {
-  width: 100%;
-  margin-top: 20px;
+  width: 280px;
+  margin: 10px 0;
   height: 44px;
   font-size: 16px;
   font-weight: 500;
+  transition: all 0.3s;
   border-radius: 4px;
+}
+
+.next-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+.next-button:active {
+  transform: translateY(0);
 }
 
 .full-width {
@@ -293,7 +314,23 @@ onMounted(() => {
 .navigation-links {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 25px;
+  padding-top: 10px;
+  border-top: 1px dashed #ebeef5;
+}
+
+.back-text {
+  position: relative;
+  padding-left: 20px;
+}
+
+.back-text::before {
+  content: "←";
+  position: absolute;
+  left: 0;
+  font-size: 14px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 :deep(.el-form-item__label) {
@@ -312,12 +349,20 @@ onMounted(() => {
   border-color: #c0c4cc;
 }
 
+:deep(.el-input__inner) {
+  transition: all 0.3s;
+}
+
 :deep(.el-select .el-input__inner:focus) {
   border-color: #409EFF;
 }
 
 :deep(.el-form-item.is-error .el-input__inner) {
   border-color: #f56c6c;
+}
+
+:deep(.el-card__body) {
+  padding: 0;
 }
 
 .error-tip {
@@ -391,12 +436,16 @@ onMounted(() => {
   .register-card {
     width: 95%;
     max-width: 700px;
-    padding: 20px;
+    padding: 20px 20px 30px;
   }
   
   .form-col {
     flex: 100%;
     margin-bottom: 10px;
+  }
+  
+  .next-button {
+    width: 100%;
   }
 }
 </style>

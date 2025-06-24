@@ -11,13 +11,13 @@
         <h2 class="login-title">管理员登录</h2>
         <el-form @submit.prevent="login" :model="form" label-position="top">
           <el-form-item label="邮箱">
-            <el-input v-model="form.email" placeholder="请输入邮箱"></el-input>
+            <el-input v-model="form.email" placeholder="请输入邮箱" :disabled="loading"></el-input>
           </el-form-item>
           <el-form-item label="密码">
-            <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password></el-input>
+            <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password :disabled="loading"></el-input>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="login" class="login-button">登录</el-button>
+            <el-button type="primary" @click="login" class="login-button" :loading="loading">登录</el-button>
           </el-form-item>
         </el-form>
         <div class="form-footer">
@@ -30,16 +30,48 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+
+const router = useRouter();
+const loading = ref(false);
 
 const form = reactive({
   email: '',
   password: '',
 });
 
-const login = () => {
-  console.log('Email:', form.email);
-  console.log('Password:', form.password);
+const login = async () => {
+  if (!form.email || !form.password) {
+    ElMessage.warning('请输入邮箱和密码');
+    return;
+  }
+  
+  loading.value = true;
+  
+  try {
+    // 模拟登录API调用
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // 成功登录后保存token
+    localStorage.setItem('token', 'mock-token-12345');
+    localStorage.setItem('user', JSON.stringify({
+      name: '管理员',
+      email: form.email,
+      avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'
+    }));
+    
+    ElMessage.success('登录成功');
+    
+    // 跳转到仪表盘
+    router.push('/dashboard');
+  } catch (error) {
+    console.error('登录失败:', error);
+    ElMessage.error('登录失败，请检查邮箱和密码');
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
 
