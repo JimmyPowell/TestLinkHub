@@ -319,6 +319,50 @@ CREATE TABLE `meeting_audit_history` (
   KEY `idx_audit_meeting_version_id` (`meeting_version_id`),
   KEY `idx_audit_auditor_id` (`auditor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会议审核历史表';
+-- ====================================================================
+-- 通知模块表 (v3 - 简化类型)
+-- ====================================================================
+
+-- 通知主表 (存储通知的模板和源信息)
+CREATE TABLE `notification` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '通知主键ID',
+  `uuid` VARCHAR(36) NOT NULL COMMENT '通知唯一标识符',
+  `sender_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '发送者ID (如果是用户操作触发), NULL表示系统',
+  `title` VARCHAR(255) NOT NULL COMMENT '通知标题 (例如: "您的课程已被驳回")',
+  `content` TEXT NOT NULL COMMENT '通知内容/描述 (包含具体原因或详情)',
+  
+  -- 核心修改点：使用您指定的四种分类
+  `type` ENUM(
+      'LESSON',       -- 课程相关
+      'NEWS',         -- 新闻动态相关
+      'MEETING',      -- 会议相关
+      'APPLICATION'   -- 申请相关
+  ) NOT NULL COMMENT '通知的业务模块分类',
+
+  `related_object_type` ENUM('lesson', 'meeting', 'news', 'user', 'company') DEFAULT NULL COMMENT '关联对象类型',
+  `related_object_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '关联对象ID (例如 lesson_id, meeting_id)',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_notification_uuid` (`uuid`),
+  KEY `idx_notification_type` (`type`),
+  KEY `idx_notification_related_object` (`related_object_type`, `related_object_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='通知主表';
+
+
+-- 通知接收人关联表 (此表结构无需改动，依然适用)
+CREATE TABLE `notification_recipient` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `notification_id` BIGINT UNSIGNED NOT NULL COMMENT '关联的通知ID',
+  `recipient_id` BIGINT UNSIGNED NOT NULL COMMENT '接收用户ID',
+  `is_read` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否已读 (0-未读, 1-已读)',
+  `read_at` TIMESTAMP NULL DEFAULT NULL COMMENT '读取时间',
+  `is_deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否被用户删除 (0-未删除, 1-已删除)',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '接收时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_notification_recipient` (`notification_id`, `recipient_id`),
+  KEY `idx_nr_recipient_id_is_read` (`recipient_id`, `is_read`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='通知接收人及状态表';
 
 
 
