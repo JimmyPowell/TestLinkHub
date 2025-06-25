@@ -41,6 +41,8 @@ public class LessonController {
             System.out.println("身份"+identity);
             lessonRequestBody.put("userId", userUuid);
             lessonRequestBody.put("identity", identity);
+
+            //
             int result = lessonService.uploadLesson(lessonRequestBody);
             if (result == -1) {
                 // 权限不足，返回code=403

@@ -79,7 +79,10 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // 允许所有人访问静态资源
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                // 配置管理员通知端点权限
+
+
+
+                    // 配置管理员通知端点权限
                 .requestMatchers("/api/admin/notifications/**").hasAuthority("ADMIN")
                 // 配置测试端点权限
                 .requestMatchers("/api/test/company-only").hasAuthority("COMPANY")
@@ -92,6 +95,10 @@ public class SecurityConfig {
                         );
                         return new org.springframework.security.authorization.AuthorizationDecision(ok);
                     })
+
+
+
+
                 // 其他所有请求需要认证
                 .anyRequest().authenticated()
             )
