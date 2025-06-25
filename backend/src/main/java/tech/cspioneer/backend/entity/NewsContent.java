@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class NewsContent {
     private Long id;
     private String uuid;
-    private String newsId;
+    private Long newsId;
     private String title;
     private String summary;
     private String coverImageUrl;
