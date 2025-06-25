@@ -3,7 +3,7 @@ package tech.cspioneer.backend.service;
 import java.util.List;
 import java.util.Map;
 
-public interface LessonService {
+public interface  LessonService {
     // 课程上传
     int uploadLesson(Map<String, Object> lessonRequestBody);
 

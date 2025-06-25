@@ -1,11 +1,13 @@
 package tech.cspioneer.backend.service.impl;
 
+import tech.cspioneer.backend.entity.Company;
 import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.User;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.exception.ResourceNotFoundException;
+import tech.cspioneer.backend.mapper.CompanyMapper;
 import tech.cspioneer.backend.mapper.MeetingMapper;
 import tech.cspioneer.backend.mapper.MeetingVersionMapper;
 import tech.cspioneer.backend.mapper.UserMapper;
@@ -18,23 +20,23 @@ import java.util.UUID;
 
 public class MeetingServicelmpl implements MeetingService {
 
-    private UserMapper userMapper;
+    private CompanyMapper companyMapper;
     private MeetingMapper meetingMapper;
     private MeetingVersionMapper meetingVersionMapper;
 
     //偷过来用一下
-    private User getUserByUuid(String uuid) {
-        User user = userMapper.findByUuid(uuid);
-        if (user == null) {
-            throw new ResourceNotFoundException("User", "uuid", uuid);
+    private Company getCompanyByUuid(String uuid) {
+        Company company = companyMapper.findByUuid(uuid);
+        if(company == null ) {
+            throw new ResourceNotFoundException("Company", "uuid", uuid);
         }
-        return user;
+        return company;
     }
     //新创建会议
     @Override
     public void createMeetingWithVersion(MeetingCreateRequest res, String useruuid ){
-        User user = getUserByUuid(useruuid);
-        if(user == null) {
+        Company company = getCompanyByUuid(useruuid);
+        if(company == null) {
             System.out.println("用户不存在");
         }
         LocalDateTime now = LocalDateTime.now();
@@ -42,7 +44,7 @@ public class MeetingServicelmpl implements MeetingService {
         //1.创建会议
         Meeting meeting = Meeting.builder()
                 .uuid(UUID.randomUUID().toString())
-                .creatorId(user.getId())
+                .creatorId(company.getId())
                 .status("draft")  //新创建的会议默认为draft
                 .createdAt(now)
                 .updatedAt(now)
@@ -60,7 +62,7 @@ public class MeetingServicelmpl implements MeetingService {
                 .startTime(LocalDateTime.parse(res.getStartTime()))
                 .endTime(LocalDateTime.parse(res.getEndTime()))
                 .status("pending_review")       // 版本状态待审核
-                .editorId(user.getId())
+                .editorId(company.getId())
                 .createdAt(now)
                 .build();
 
@@ -77,8 +79,8 @@ public class MeetingServicelmpl implements MeetingService {
 
     @Override
     public void updateMeetingWithVersion(MeetingUpdateRequest res, String useruuid) {
-        User user = getUserByUuid(useruuid);
-        if(user == null) {
+        Company company = getCompanyByUuid(useruuid);
+        if(company == null) {
             System.out.println("用户不存在");
         }
         LocalDateTime now = LocalDateTime.now();
@@ -103,7 +105,7 @@ public class MeetingServicelmpl implements MeetingService {
                 .startTime(LocalDateTime.parse(res.getStartTime()))
                 .endTime(LocalDateTime.parse(res.getEndTime()))
                 .status("pending_review")
-                .editorId(user.getId())
+                .editorId(company.getId())
                 .createdAt(now)
                 .build();
 
@@ -113,6 +115,20 @@ public class MeetingServicelmpl implements MeetingService {
         meeting.setPendingVersionId(meetingVersion.getId());
         meeting.setUpdatedAt(now);
         meetingMapper.update(meeting);
+
+    }
+
+    @Override
+    public void deleteMeeting(String meetingUuid) {
+        //1.查找会议是否存在
+        Meeting meeting = meetingMapper.findByUuid(meetingUuid);
+        if(meeting == null) {
+            throw new ResourceNotFoundException("Meeting", "uuid", meetingUuid);
+        }
+        //2.删除会议主表
+        meeting.setIsDeleted(1);
+        System.out.println("删除会议"+meetingUuid);
+
 
     }
 }

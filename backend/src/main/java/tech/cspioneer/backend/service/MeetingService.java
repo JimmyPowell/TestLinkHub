@@ -14,4 +14,7 @@ public interface MeetingService {
 
     //更新会议
     public void updateMeetingWithVersion(MeetingUpdateRequest res, String useruuid);
+
+    //删除会议
+    public void deleteMeeting(String meetingUuid);
 }
