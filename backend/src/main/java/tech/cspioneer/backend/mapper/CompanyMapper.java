@@ -13,7 +13,15 @@ public interface CompanyMapper {
      */
     @Select("SELECT * FROM company WHERE company_code = #{companyCode}")
     Company findByCompanyCode(String companyCode);
-    
+
+    /**
+     * 根据公司代码查询公司
+     * @param uuid 唯一id
+     * @return 公司对象，如果不存在则返回null
+     */
+    @Select("SELECT * FROM company WHERE uuid = #{uuid}")
+    Company findByUuid(String uuid);
+
     /**
      * 根据邮箱查询公司
      * @param email 公司邮箱

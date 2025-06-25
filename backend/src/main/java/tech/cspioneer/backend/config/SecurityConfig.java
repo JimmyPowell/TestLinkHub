@@ -83,6 +83,15 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/notifications/**").hasAuthority("ADMIN")
                 // 配置测试端点权限
                 .requestMatchers("/api/test/company-only").hasAuthority("COMPANY")
+                //配置课程权限
+                    .requestMatchers("/api/admin/lesson/**")
+                    .access((auth, context) -> {
+                        var authorities = auth.get().getAuthorities();
+                        boolean ok = authorities.stream().anyMatch(a ->
+                                "ADMIN".equals(a.getAuthority()) || "COMPANY".equals(a.getAuthority())
+                        );
+                        return new org.springframework.security.authorization.AuthorizationDecision(ok);
+                    })
                 // 其他所有请求需要认证
                 .anyRequest().authenticated()
             )
