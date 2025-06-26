@@ -9,6 +9,8 @@ import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.exception.ResourceNotFoundException;
 import tech.cspioneer.backend.mapper.CompanyMapper;
 import tech.cspioneer.backend.mapper.MeetingMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import tech.cspioneer.backend.mapper.MeetingVersionMapper;
 import tech.cspioneer.backend.mapper.UserMapper;
 import tech.cspioneer.backend.service.MeetingService;
@@ -17,12 +19,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
+@Service
+@RequiredArgsConstructor
+public class MeetingServiceImpl implements MeetingService {
 
-public class MeetingServicelmpl implements MeetingService {
-
-    private CompanyMapper companyMapper;
-    private MeetingMapper meetingMapper;
-    private MeetingVersionMapper meetingVersionMapper;
+    private final CompanyMapper companyMapper;
+    private final MeetingMapper meetingMapper;
+    private final MeetingVersionMapper meetingVersionMapper;
 
     //偷过来用一下
     private Company getCompanyByUuid(String uuid) {
