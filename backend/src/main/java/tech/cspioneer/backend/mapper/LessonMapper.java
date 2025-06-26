@@ -156,4 +156,27 @@ public interface LessonMapper {
         "</script>"
     })
     int softDeleteLessons(@Param("ids") List<Long> ids);
+
+    @Select({
+        "<script>",
+        "SELECT",
+        "  l.id AS lessonId,",
+        "  v.name AS name,",
+        "  v.image_url AS imageUrl,",
+        "  v.description AS description,",
+        "  v.author_name AS authorName,",
+        "  v.version AS version,",
+        "  l.status AS lessonStatus,",
+        "  v.status AS versionStatus",
+        "FROM lesson l",
+        "LEFT JOIN lesson_version v ON l.pending_version_id = v.id",
+        "<where>",
+        "  l.is_deleted = 0",
+        "  AND (l.status = 'archived' OR l.status = 'pending_review')",
+        "</where>",
+        "ORDER BY l.updated_at DESC",
+        "LIMIT #{pageSize} OFFSET #{offset}",
+        "</script>"
+    })
+    List<Map<String, Object>> selectReviewLessonsWithPendingVersion(@Param("pageSize") int pageSize, @Param("offset") int offset);
 }

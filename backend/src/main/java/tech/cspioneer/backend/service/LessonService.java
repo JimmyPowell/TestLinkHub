@@ -24,8 +24,6 @@ public interface  LessonService {
     // 课程详情
     LessonDetailResponse getLessonDetail(LessonDetailRequest req);
 
-    // 审核列表
-    Map<String, Object> getLessonReviewHistory(Map<String, Object> pageBody);
 
     // 审核操作
     int approveLesson(String uuid, Map<String, Object> approvalBody);
@@ -38,4 +36,6 @@ public interface  LessonService {
 
     // 课程搜索
     LessonSearchResponse searchLesson(LessonSearchRequest req);
+
+    List<Map<String, Object>> getReviewLessonsWithPendingVersion(int pageSize, int offset);
 }

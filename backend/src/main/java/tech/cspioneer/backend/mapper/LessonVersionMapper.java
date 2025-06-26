@@ -18,7 +18,7 @@ public interface LessonVersionMapper {
     @Delete("DELETE FROM lesson_version WHERE id=#{id}")
     int deleteById(@Param("id") Long id);
 
-    @Select("SELECT * FROM lesson_version WHERE id=#{id}")
+    @Select("SELECT * FROM lesson_version WHERE id=#{id} AND is_deleted = 0")
     LessonVersion selectById(@Param("id") Long id);
 
     @Select("SELECT * FROM lesson_version WHERE uuid=#{uuid}")

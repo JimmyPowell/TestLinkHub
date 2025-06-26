@@ -332,11 +332,6 @@ public class LessonServiceImpl implements LessonService {
     }
 
     @Override
-    public Map<String, Object> getLessonReviewHistory(Map<String, Object> pageBody) {
-        return Map.of();
-    }
-
-    @Override
     public int approveLesson(String uuid, Map<String, Object> approvalBody) {
         return 0;
     }
@@ -364,5 +359,10 @@ public class LessonServiceImpl implements LessonService {
         resp.setTotal(resultList.size());
         resp.setList(resultList);
         return resp;
+    }
+
+    @Override
+    public List<Map<String, Object>> getReviewLessonsWithPendingVersion(int pageSize, int offset) {
+        return lessonMapper.selectReviewLessonsWithPendingVersion(pageSize, offset);
     }
 } 
