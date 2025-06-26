@@ -3,16 +3,14 @@ package tech.cspioneer.backend.controller.admin;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import tech.cspioneer.backend.entity.Company;
 import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingParticipant;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
-import tech.cspioneer.backend.entity.dto.request.MeetingParticipantRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
-import tech.cspioneer.backend.entity.dto.request.meetingParticipantRequest;
+
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.service.MeetingPartService;
 import tech.cspioneer.backend.service.MeetingService;
@@ -23,13 +21,9 @@ import java.util.List;
 @RequestMapping("/api/admin/meeting")
 public class AdminMeetingController {
 
-    private final MeetingService meetingService;
-    private final MeetingPartService meetingPartService;
+    private  MeetingService meetingService;
+    private  MeetingPartService meetingPartService;
 
-    public AdminMeetingController(MeetingService meetingService, MeetingPartService meetingPartService) {
-        this.meetingService = meetingService;
-        this.meetingPartService = meetingPartService;
-    }
 
     // 创建会议（仅公司身份可访问）
     @PreAuthorize("hasAuthority('COMPANY')")

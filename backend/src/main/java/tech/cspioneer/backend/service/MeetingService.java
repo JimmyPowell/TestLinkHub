@@ -2,8 +2,11 @@ package tech.cspioneer.backend.service;
 
 import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.mapper.MeetingMapper;
+
+import java.util.List;
 
 public interface MeetingService {
 
@@ -17,4 +20,10 @@ public interface MeetingService {
 
     //删除会议
     public void deleteMeeting(String meetingUuid);
+
+    void reviewMeetingCreate(MeetingReviewRequest res, String useruuid);
+
+    List<MeetingVersion> getPendingReviewList(int page, int size);
+
+    MeetingVersion getMeetingVersionDetails(String meetingversionuuid);
 }

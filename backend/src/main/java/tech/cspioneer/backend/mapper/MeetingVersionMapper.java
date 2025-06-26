@@ -1,9 +1,9 @@
 package tech.cspioneer.backend.mapper;
 
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
 import tech.cspioneer.backend.entity.MeetingVersion;
+
+import java.util.List;
 
 @Mapper
 public interface MeetingVersionMapper {
@@ -43,4 +43,20 @@ public interface MeetingVersionMapper {
     //查找最大版本号
     @Select("SELECT MAX(version) FROM meeting_version WHERE meeting_id = #{meetingId} AND is_deleted = 0")
     public Integer findMaxVersionByMeetingId(Long id) ;
+
+    @Select("SELECT * FROM meeting_version WHERE uuid = #{uuid} LIMIT 1")
+    MeetingVersion findByUuid(@Param("uuid") String uuid);
+
+    @Update("UPDATE meeting_version SET status = #{status} WHERE id = #{id}")
+    void updateStatus(@Param("id") Long id, @Param("status") String status);
+
+    @Select("""
+    SELECT * FROM meeting_version
+    WHERE status = 'pending_review'
+    ORDER BY created_at DESC
+    LIMIT #{limit} OFFSET #{offset}
+""")
+    List<MeetingVersion> findPendingList(@Param("offset") int offset, @Param("limit") int limit);
+
+
 }

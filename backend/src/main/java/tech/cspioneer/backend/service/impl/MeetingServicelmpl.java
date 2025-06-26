@@ -7,6 +7,7 @@ import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.User;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.exception.ResourceNotFoundException;
 import tech.cspioneer.backend.mapper.CompanyMapper;
@@ -17,6 +18,7 @@ import tech.cspioneer.backend.service.MeetingService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -134,5 +136,46 @@ public class MeetingServicelmpl implements MeetingService {
         System.out.println("删除会议"+meetingUuid);
 
 
+    }
+
+    @Override
+    public void reviewMeetingCreate(MeetingReviewRequest req, String useruuid) {
+        MeetingVersion version = meetingVersionMapper.findByUuid(req.getMeetingVersionUuid());
+        if (version == null) {
+            throw new ResourceNotFoundException("MeetingVersion", "uuid", req.getMeetingVersionUuid());
+        }
+
+        // 写入审核历史记录
+        auditHistoryMapper.insertHistory(
+                version.getId(),
+                Long.parseLong(useruuid),
+                req.getAuditStatus(),
+                req.getComments(),
+                LocalDateTime.now()
+        );
+
+        // 更新版本状态
+        String status = req.getAuditStatus();
+        version.setStatus(status);
+        meetingVersionMapper.updateStatus(version.getId(), status);
+
+        // 如果通过审核，更新会议主表的 current_version_id
+        if ("approved".equals(status)) {
+            Meeting meeting = meetingMapper.findById(version.getMeetingId());
+            meeting.setCurrentVersionId(version.getId());
+            meeting.setStatus("active"); // or “approved”
+            meetingMapper.update(meeting);
+        }
+    }
+
+    @Override
+    public List<MeetingVersion> getPendingReviewList(int page, int size) {
+        int offset = (page - 1) * size;
+        return meetingVersionMapper.findPendingList(offset, size);
+    }
+
+    @Override
+    public MeetingVersion getMeetingVersionDetails(String meetingVersionUuid) {
+        return meetingVersionMapper.findByUuid(meetingVersionUuid);
     }
 }
