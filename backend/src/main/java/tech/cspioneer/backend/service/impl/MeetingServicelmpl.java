@@ -10,10 +10,7 @@ import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.exception.ResourceNotFoundException;
-import tech.cspioneer.backend.mapper.CompanyMapper;
-import tech.cspioneer.backend.mapper.MeetingMapper;
-import tech.cspioneer.backend.mapper.MeetingVersionMapper;
-import tech.cspioneer.backend.mapper.UserMapper;
+import tech.cspioneer.backend.mapper.*;
 import tech.cspioneer.backend.service.MeetingService;
 
 import java.time.LocalDateTime;
@@ -29,7 +26,7 @@ public class MeetingServicelmpl implements MeetingService {
     private CompanyMapper companyMapper;
     private MeetingMapper meetingMapper;
     private MeetingVersionMapper meetingVersionMapper;
-
+    private AuditHistoryMapper auditHistoryMapper;
     //偷过来用一下
     private Company getCompanyByUuid(String uuid) {
         Company company = companyMapper.findByUuid(uuid);
@@ -154,12 +151,12 @@ public class MeetingServicelmpl implements MeetingService {
                 LocalDateTime.now()
         );
 
-        // 更新版本状态
+         //更新版本状态
         String status = req.getAuditStatus();
         version.setStatus(status);
         meetingVersionMapper.updateStatus(version.getId(), status);
 
-        // 如果通过审核，更新会议主表的 current_version_id
+         //如果通过审核，更新会议主表的 current_version_id
         if ("approved".equals(status)) {
             Meeting meeting = meetingMapper.findById(version.getMeetingId());
             meeting.setCurrentVersionId(version.getId());
@@ -177,5 +174,10 @@ public class MeetingServicelmpl implements MeetingService {
     @Override
     public MeetingVersion getMeetingVersionDetails(String meetingVersionUuid) {
         return meetingVersionMapper.findByUuid(meetingVersionUuid);
+    }
+
+    @Override
+    public List<MeetingVersion> getPublishedMeetings(int page, int size) {
+        return List.of();
     }
 }

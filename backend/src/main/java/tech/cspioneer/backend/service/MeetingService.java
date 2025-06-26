@@ -26,4 +26,6 @@ public interface MeetingService {
     List<MeetingVersion> getPendingReviewList(int page, int size);
 
     MeetingVersion getMeetingVersionDetails(String meetingversionuuid);
+
+    List<MeetingVersion> getPublishedMeetings(int page, int size);
 }

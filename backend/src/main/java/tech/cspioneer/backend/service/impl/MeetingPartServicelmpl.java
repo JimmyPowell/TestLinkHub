@@ -6,6 +6,7 @@ import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingParticipant;
 import tech.cspioneer.backend.entity.User;
 import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingParticipantRequest;
 import tech.cspioneer.backend.mapper.MeetingMapper;
 import tech.cspioneer.backend.mapper.MeetingParticipantMapper;
 import tech.cspioneer.backend.mapper.UserMapper;
@@ -64,5 +65,15 @@ public class MeetingPartServicelmpl implements MeetingPartService {
     public List<MeetingParticipant> getMeetingPartsByCreator(String useruuid, int page, int size) {
         int offset = (page - 1) * size;
         return meetingPartMapper.findPartsByCreator(useruuid, offset, size);
+    }
+
+    @Override
+    public List<MeetingParticipant> getMeetingPartsByUser(String useruuid, int page, int size) {
+        return List.of();
+    }
+
+    @Override
+    public void joinMeeting(MeetingParticipantRequest request, String useruuid) {
+
     }
 }

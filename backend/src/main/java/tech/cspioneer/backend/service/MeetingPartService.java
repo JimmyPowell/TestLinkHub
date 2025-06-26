@@ -2,6 +2,7 @@ package tech.cspioneer.backend.service;
 
 import tech.cspioneer.backend.entity.MeetingParticipant;
 import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingParticipantRequest;
 
 import java.util.List;
 
@@ -21,4 +22,8 @@ public interface MeetingPartService {
 
     //通过当前人员的id查找其对应的所有申请
     List<MeetingParticipant> getMeetingPartsByCreator(String useruuid, int page, int size);
+
+    List<MeetingParticipant> getMeetingPartsByUser(String useruuid, int page, int size);
+
+    void joinMeeting(MeetingParticipantRequest request, String useruuid);
 }
