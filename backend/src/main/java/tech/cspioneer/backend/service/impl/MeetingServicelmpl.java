@@ -1,5 +1,7 @@
 package tech.cspioneer.backend.service.impl;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import tech.cspioneer.backend.entity.Company;
 import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingVersion;
@@ -18,6 +20,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 
+@Service
+@RequiredArgsConstructor
 public class MeetingServicelmpl implements MeetingService {
 
     private CompanyMapper companyMapper;

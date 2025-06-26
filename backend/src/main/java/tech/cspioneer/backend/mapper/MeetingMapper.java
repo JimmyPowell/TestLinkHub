@@ -7,6 +7,16 @@ import tech.cspioneer.backend.entity.Meeting;
 @Mapper
 public interface MeetingMapper {
 
+    // 根据会议ID查找会议
+    @Select("""
+    SELECT * FROM meeting
+    WHERE id = #{id}
+    AND is_deleted = 0
+    LIMIT 1
+""")
+    Meeting findById(@Param("id") Long id);
+
+
     //创建新的会议
     @Insert("""
         INSERT INTO meeting (
