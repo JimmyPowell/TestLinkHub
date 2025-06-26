@@ -33,7 +33,7 @@ public class NewsListQuery {
      */
     private String orderBy;
     /**
-     * 查询权限
+     * 查询公司ID
      */
-    private int queryType;
+    private String companyUuid;
 }

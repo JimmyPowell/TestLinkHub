@@ -2,6 +2,8 @@ package tech.cspioneer.backend.entity.dto.response;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class NewsListResponse {
     /**
@@ -19,7 +21,7 @@ public class NewsListResponse {
     /**
      * 版本创建时间
      */
-    private String createdAt;
+    private LocalDateTime createdAt;
     /**
      * 此版本内容的创建/修改者ID
      */

@@ -20,4 +20,12 @@ public class NewsQueryRequest {
      * 新闻标题
      */
     private String title;
+
+    private Integer page;
+
+    private Integer pageSize;
+
+    private String userUuid;
+
+    private String identity;
 }
