@@ -7,8 +7,8 @@ import java.util.List;
 @Mapper
 public interface LessonAuditHistoryMapper {
 
-    @Insert("INSERT INTO lesson_audit_history(lesson_version_id, auditor_id, audit_status, comments, is_deleted, created_at) " +
-            "VALUES(#{lessonVersionId}, #{auditorId}, #{auditStatus}, #{comments}, #{isDeleted}, #{createdAt})")
+    @Insert("INSERT INTO lesson_audit_history(lesson_version_id, uuid, auditor_id, audit_status, comments, is_deleted, created_at) " +
+            "VALUES(#{lessonVersionId}, #{uuid}, #{auditorId}, #{auditStatus}, #{comments}, #{isDeleted}, #{createdAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(LessonAuditHistory lessonAuditHistory);
 
@@ -56,19 +56,19 @@ public interface LessonAuditHistoryMapper {
                                                @Param("offset") int offset);
 
     /**
-     * 批量软删除审核历史
-     * @param ids 审核历史主键ID列表
+     * 批量软删除审核历史（根据uuid）
+     * @param uuids 审核历史uuid列表
      * @return 受影响行数
      */
     @Update({
         "<script>",
-        "UPDATE lesson_audit_history SET is_deleted=1 WHERE id IN",
-        "<foreach collection='ids' item='id' open='(' separator=',' close=')'>",
-        "  #{id}",
+        "UPDATE lesson_audit_history SET is_deleted=1 WHERE uuid IN",
+        "<foreach collection='uuids' item='uuid' open='(' separator=',' close=')'>",
+        "  #{uuid}",
         "</foreach>",
         "</script>"
     })
-    int softDeleteHistoryByIds(@Param("ids") List<Long> ids);
+    int softDeleteHistoryByUuids(@Param("uuids") List<String> uuids);
 
     @Select({
         "<script>",
