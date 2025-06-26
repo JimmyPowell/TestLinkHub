@@ -298,6 +298,7 @@ public class LessonServiceImpl implements LessonService {
             dto.setDescription((String) row.get("description"));
             dto.setAuthorName((String) row.get("author_name"));
             dto.setVersion(row.get("version") != null ? ((Number)row.get("version")).intValue() : null);
+            dto.setUuid((String) row.get("uuid"));
             resultList.add(dto);
         }
     }
@@ -414,7 +415,6 @@ public class LessonServiceImpl implements LessonService {
         // 判断发布者是公司还是管理员
         if (lesson.getPublisherId() != null) {
             // 这里假设publisherId为公司id，实际可根据业务调整
-            System.out.println("go");
             notificationService.sendSystemNotificationToUser(lesson.getPublisherId(), title, content, RelatedObjectType.LESSON, lesson.getId());
         }
     }
@@ -448,6 +448,7 @@ public class LessonServiceImpl implements LessonService {
         history.setComments(comments);
         history.setIsDeleted(0);
         history.setCreatedAt(java.time.LocalDateTime.now());
+        history.setUuid(java.util.UUID.randomUUID().toString());
         lessonAuditHistoryMapper.insert(history);
     }
 
@@ -464,8 +465,8 @@ public class LessonServiceImpl implements LessonService {
     }
 
     @Override
-    public int softDeleteLessonAuditHistory(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) return 0;
-        return lessonAuditHistoryMapper.softDeleteHistoryByIds(ids);
+    public int softDeleteLessonAuditHistory(List<String> uuids) {
+        if (uuids == null || uuids.isEmpty()) return 0;
+        return lessonAuditHistoryMapper.softDeleteHistoryByUuids(uuids);
     }
 } 

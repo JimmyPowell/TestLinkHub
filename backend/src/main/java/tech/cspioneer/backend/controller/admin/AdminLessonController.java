@@ -194,7 +194,7 @@ public class AdminLessonController {
     }
 
     @DeleteMapping("/root/lesson/review/history/delete")
-    public ResponseEntity<?> deleteLessonReviewHistory(@RequestBody List<Long> ids,
+    public ResponseEntity<?> deleteLessonReviewHistory(@RequestBody List<String> uuids,
                                                       @AuthenticationPrincipal String userUuid,
                                                       Authentication authentication) {
         String identity = "UNKNOWN";
@@ -207,7 +207,7 @@ public class AdminLessonController {
         if (!"ADMIN".equals(identity)) {
             return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
         }
-        int deleted = lessonService.softDeleteLessonAuditHistory(ids);
+        int deleted = lessonService.softDeleteLessonAuditHistory(uuids);
         return ResponseEntity.ok().body(Map.of("code", 200, "message", "删除成功", "data", deleted));
     }
 }

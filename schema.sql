@@ -107,7 +107,7 @@ CREATE TABLE `news` (
   `uuid` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '新闻唯一标识符',
   `company_id` bigint unsigned NOT NULL COMMENT '发布公司ID',
   `visible` tinyint(1) DEFAULT '1' COMMENT '是否可见（0:仅企业内部可见, 1:全部用户可见）',
-  `status` enum('draft','published','archived') COLLATE utf8mb4_unicode_ci DEFAULT 'draft' COMMENT '新闻整体状态',
+  `status` enum('pending_review','active','rejected', 'archived') COLLATE utf8mb4_unicode_ci DEFAULT 'pending_review' COMMENT '新闻整体状态',
   `current_content_id` bigint unsigned DEFAULT NULL COMMENT '当前生效的内容版本ID',
   `pending_content_id` bigint unsigned DEFAULT NULL COMMENT '审核中的内容版本ID',
   `is_deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除 0-未删除 1-已删除',
@@ -129,7 +129,7 @@ CREATE TABLE `news_content` (
   `cover_image_url` VARCHAR(500) DEFAULT NULL COMMENT '封面图片URL',
   `resource_url` VARCHAR(255) COMMENT '新闻正文内容 (HTML或Markdown)',
   `version` int unsigned NOT NULL DEFAULT '1' COMMENT '版本号',
-  `status` enum('draft','pending_review','active','rejected', 'archived') COLLATE utf8mb4_unicode_ci DEFAULT 'draft' COMMENT '版本状态',
+  `status` enum('pending_review','active','rejected', 'archived') COLLATE utf8mb4_unicode_ci DEFAULT 'pending_review' COMMENT '版本状态',
   `publisher_id` BIGINT UNSIGNED NOT NULL COMMENT '此版本内容的创建/修改者ID',
   `is_deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除 0-未删除 1-已删除',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '版本创建时间',
@@ -231,6 +231,7 @@ CREATE TABLE `lesson_resources` (
 -- 课程审核历史表
 CREATE TABLE `lesson_audit_history` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '审核记录主键ID',
+  `uuid` VARCHAR(36) NOT NULL COMMENT '审核记录唯一标识符',
   `lesson_version_id` BIGINT UNSIGNED NOT NULL COMMENT '被审核的课程版本ID',
   `auditor_id` BIGINT UNSIGNED NOT NULL COMMENT '审核员ID',
   `audit_status` ENUM('approved', 'rejected') NOT NULL COMMENT '审核结果',
@@ -238,6 +239,7 @@ CREATE TABLE `lesson_audit_history` (
   `is_deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除 0-未删除 1-已删除',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '审核操作时间',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `lesson_audit_history_pk` (`uuid`),
   KEY `idx_lah_lesson_version_id` (`lesson_version_id`),
   KEY `idx_lah_auditor_id` (`auditor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课程审核历史表';

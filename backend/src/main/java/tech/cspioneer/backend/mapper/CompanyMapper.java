@@ -23,6 +23,14 @@ public interface CompanyMapper {
     Company findByUuid(String uuid);
 
     /**
+     * 根据公司代码查询公司
+     * @param id 唯一id
+     * @return 公司对象，如果不存在则返回null
+     */
+    @Select("SELECT * FROM company WHERE id = #{id}")
+    Company findById(Long id);
+
+    /**
      * 根据邮箱查询公司
      * @param email 公司邮箱
      * @return 公司对象，如果不存在则返回null

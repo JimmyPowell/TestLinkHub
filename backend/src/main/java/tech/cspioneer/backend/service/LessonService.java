@@ -38,5 +38,5 @@ public interface  LessonService {
     Map<String, Object> getLessonAuditHistoryPage(String auditStatus, String beginTime, String endTime, int page, int size);
 
     // 删除审核历史
-    int softDeleteLessonAuditHistory(List<Long> ids);
+    int softDeleteLessonAuditHistory(List<String> uuids);
 }

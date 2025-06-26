@@ -10,7 +10,6 @@ import tech.cspioneer.backend.entity.dto.request.LessonSearchRequest;
 import tech.cspioneer.backend.entity.dto.response.LessonListResponse;
 import tech.cspioneer.backend.entity.dto.response.LessonDetailResponse;
 import tech.cspioneer.backend.entity.dto.response.LessonSearchResponse;
-import tech.cspioneer.backend.exception.LessonServiceException;
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.service.LessonService;
 import tech.cspioneer.backend.utils.JwtUtils;

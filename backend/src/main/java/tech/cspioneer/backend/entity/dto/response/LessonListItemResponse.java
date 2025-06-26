@@ -9,4 +9,5 @@ public class LessonListItemResponse {
     private String description;
     private String authorName;
     private Integer version;
+    private String uuid;
 } 

@@ -3,6 +3,11 @@ package tech.cspioneer.backend.mapper;
 import org.apache.ibatis.annotations.*;
 import tech.cspioneer.backend.entity.News;
 import tech.cspioneer.backend.entity.NewsContent;
+import tech.cspioneer.backend.entity.dto.response.NewsAuditDetailResponse;
+import tech.cspioneer.backend.entity.dto.response.NewsAuditListResponse;
+import tech.cspioneer.backend.entity.dto.response.NewsHistoryResponse;
+import tech.cspioneer.backend.entity.dto.response.NewsListResponse;
+import tech.cspioneer.backend.entity.query.NewsListQuery;
 
 import java.util.List;
 
@@ -117,12 +122,15 @@ public interface NewsMapper {
             @Param("currentContentId") Long currentContentId,
             @Param("pendingContentId") Long pendingContentId);
 
-    // 分页查询
+    // 分页查询(支持查询所有新闻或按公司ID过滤)
     @Select({
+            "<script>",
             "SELECT * FROM news",
-            "WHERE company_id = #{companyId} AND is_deleted = 0",
+            "WHERE is_deleted = 0",
+            "<if test='companyId != null'>AND company_id = #{companyId}</if>",
             "ORDER BY created_at DESC",
-            "LIMIT #{limit} OFFSET #{offset}"
+            "LIMIT #{limit} OFFSET #{offset}",
+            "</script>"
     })
     @ResultMap("newsResultMap")
     List<News> findByCompanyIdWithPagination(
@@ -130,7 +138,87 @@ public interface NewsMapper {
             @Param("offset") int offset,
             @Param("limit") int limit);
 
-    // 统计公司新闻数量
-    @Select("SELECT COUNT(*) FROM news WHERE company_id = #{companyId} AND is_deleted = 0")
-    int countByCompanyId(@Param("companyId") Long companyId);
+    // 统计新闻数量(支持统计所有新闻或按公司ID过滤)
+    @Select({
+            "<script>",
+            "SELECT COUNT(*) FROM news",
+            "WHERE is_deleted = 0",
+            "<if test='companyId != null'>AND company_id = #{companyId}</if>",
+            "</script>"
+    })
+    int countNews(@Param("companyId") Long companyId);
+
+    // 联查新闻列表
+    @Select({
+            "<script>",
+            "SELECT n.uuid, n.company_id as companyId, nc.created_at as contentCreatedAt, ",
+            "nc.cover_image_url as coverImageUrl, n.created_at as createdAt, ",
+            "nc.publisher_id as publisherId, nc.summary, nc.title ",
+            "FROM news n ",
+            "JOIN news_content nc ON n.current_content_id = nc.id ",
+            "WHERE n.is_deleted = 0 AND nc.is_deleted = 0 ",
+            "<if test='query.companyUuid != null'>",
+            "   AND (n.visible = 1 OR n.company_id = (SELECT id FROM company WHERE uuid = #{query.companyUuid})) ",
+            "</if>",
+            "<if test='query.title != null and query.title != \"\"'>",
+            "   AND nc.title LIKE CONCAT('%', #{query.title}, '%') ",
+            "</if>",
+            "<if test='query.summary != null and query.summary != \"\"'>",
+            "   AND nc.summary LIKE CONCAT('%', #{query.summary}, '%') ",
+            "</if>",
+            "<if test='query.startTime != null and query.startTime != \"\"'>",
+            "   AND n.created_at >= #{query.startTime} ",
+            "</if>",
+            "<if test='query.endTime != null and query.endTime != \"\"'>",
+            "   AND n.created_at <= #{query.endTime} ",
+            "</if>",
+            "ORDER BY n.created_at DESC ",
+            "LIMIT #{query.pageSize} OFFSET #{query.pageSize} * (#{query.page} - 1)",
+            "</script>"
+    })
+    List<NewsListResponse> findNewsList(@Param("query") NewsListQuery query);
+
+    // 查询待审核新闻列表
+    @Select({
+            "SELECT n.uuid, n.company_id as companyId, nc.created_at as contentCreatedAt, ",
+            "nc.cover_image_url as coverImageUrl, n.created_at as createdAt, ",
+            "nc.publisher_id as publisherId, nc.summary, nc.title, nc.version ",
+            "FROM news n ",
+            "JOIN news_content nc ON n.pending_content_id = nc.id ",
+            "WHERE n.is_deleted = 0 AND nc.is_deleted = 0 ",
+            "AND n.status = 'pending' ",
+            "ORDER BY n.created_at DESC ",
+            "LIMIT #{pageSize} OFFSET #{pageSize} * (#{page} - 1)"
+    })
+    List<NewsAuditListResponse> findPendingNewsList(
+            @Param("page") int page,
+            @Param("pageSize") int pageSize);
+
+    // 查询待审核新闻详情
+    @Select({
+            "SELECT n.uuid, n.company_id as companyId, nc.created_at as contentCreatedAt, ",
+            "nc.cover_image_url as coverImageUrl, n.created_at as createdAt, ",
+            "nc.publisher_id as publisherId, nc.resource_url as resourceUrl, ",
+            "nc.summary, nc.title, nc.version ",
+            "FROM news n ",
+            "JOIN news_content nc ON n.pending_content_id = nc.id ",
+            "WHERE n.uuid = #{uuid} AND n.is_deleted = 0 AND nc.is_deleted = 0 ",
+            "AND n.status = 'pending'"
+    })
+    NewsAuditDetailResponse findPendingNewsDetail(@Param("uuid") String uuid);
+
+    // 查询新闻历史记录
+    @Select({
+        "SELECT nh.uuid, nh.audit_status as auditStatus, nh.auditor_uuid as auditorUUid, ",
+        "nh.comments, n.company_id as companyId, nc.created_at as contentCreatedAt, ",
+        "nc.cover_image_url as coverImageUrl, nh.created_at as createdAt, ",
+        "nc.uuid as newsContentUUid, nc.publisher_id as publisherId, ",
+        "nc.summary, nc.title, nc.version ",
+        "FROM news n ",
+        "JOIN news_content nc ON n.id = nc.news_id ",
+        "JOIN news_audit_history nh ON nc.id = nh.news_content_id ",
+        "WHERE n.uuid = #{uuid} ",
+        "ORDER BY nh.id DESC"
+    })
+    List<NewsHistoryResponse> findNewsHistory(@Param("uuid") String uuid);
 }

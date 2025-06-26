@@ -4,7 +4,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import tech.cspioneer.backend.entity.dto.request.NewsQueryRequest;
 import tech.cspioneer.backend.entity.dto.response.NewsDetailResponse;
@@ -22,22 +25,38 @@ public class ClientNewsController{
     private NewsService newsService;
 
     @GetMapping("/newsList")
+    @PreAuthorize("hasAnyAuthority('USER','COMPANY','ADMIN')")
     public ResponseEntity<ApiResponse<List<NewsListResponse>>> getNewsList(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer pageSize,
-            @RequestBody NewsQueryRequest newsQueryRequest,
-            @AuthenticationPrincipal String userUuid) {
-        if (userUuid == null) {
-
-        }
-        List<NewsListResponse> response = newsService.getNewsList(page, pageSize);
+            @RequestBody NewsQueryRequest newsQueryRequest) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userUuid = (String) authentication.getPrincipal();
+        // 获取用户身份/角色
+        String identity = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(authority -> authority.getAuthority())
+                .orElse("UNKNOWN");
+        newsQueryRequest.setPage(page);
+        newsQueryRequest.setPageSize(pageSize);
+        newsQueryRequest.setIdentity(identity);
+        newsQueryRequest.setUserUuid(userUuid);
+        List<NewsListResponse> response = newsService.getNewsList(newsQueryRequest);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/getNews/{uuid}")
+    @PreAuthorize("hasAnyAuthority('USER','COMPANY','ADMIN')")
     public ResponseEntity<ApiResponse<NewsDetailResponse>> getNewsDetail(
             @PathVariable String uuid) {
-        NewsDetailResponse response = newsService.getNewsDetail(uuid);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userUuid = (String) authentication.getPrincipal();
+        // 获取用户身份/角色
+        String identity = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(authority -> authority.getAuthority())
+                .orElse("UNKNOWN");
+        NewsDetailResponse response = newsService.getNewsDetail(uuid,userUuid,identity);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

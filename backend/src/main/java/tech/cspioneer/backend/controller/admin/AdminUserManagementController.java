@@ -23,7 +23,7 @@ public class AdminUserManagementController {
     private final AdminUserManagementService adminUserManagementService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('COMPANY', 'ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<PagedResponse<UserResponse>>> getAllUsers(@RequestParam(defaultValue = "0") int page,
                                                                                  @RequestParam(defaultValue = "10") int size) {
         try {
@@ -35,7 +35,7 @@ public class AdminUserManagementController {
     }
 
     @GetMapping("/{uuid}")
-    @PreAuthorize("hasAnyAuthority('COMPANY', 'ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> getUserByUuid(@PathVariable String uuid) {
         try {
             UserResponse user = adminUserManagementService.getUserByUuid(uuid);
@@ -48,7 +48,7 @@ public class AdminUserManagementController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('COMPANY', 'ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@RequestBody UserCreateRequest userCreateRequest) {
         try {
             UserResponse createdUser = adminUserManagementService.createUser(userCreateRequest);
@@ -61,7 +61,7 @@ public class AdminUserManagementController {
     }
 
     @PutMapping("/{uuid}")
-    @PreAuthorize("hasAnyAuthority('COMPANY', 'ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(@PathVariable String uuid, @RequestBody UserUpdateRequest userUpdateRequest) {
         try {
             UserResponse updatedUser = adminUserManagementService.updateUser(uuid, userUpdateRequest);
@@ -76,7 +76,7 @@ public class AdminUserManagementController {
     }
 
     @DeleteMapping("/{uuid}")
-    @PreAuthorize("hasAnyAuthority('COMPANY', 'ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable String uuid) {
         try {
             adminUserManagementService.deleteUser(uuid);

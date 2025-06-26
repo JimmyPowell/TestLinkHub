@@ -85,8 +85,8 @@ public class SecurityConfig {
 
 
 
-                    // 配置管理员通知端点权限
-                .requestMatchers("/api/admin/notifications/**").hasAuthority("ADMIN")
+                    // 配置所有/api/admin/路径下的端点权限
+                .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN", "COMPANY")
                 // 配置测试端点权限
                 .requestMatchers("/api/test/company-only").hasAuthority("COMPANY")
                 //配置课程权限

@@ -88,4 +88,29 @@ public interface UserMapper {
     @Select("SELECT COUNT(*) FROM user WHERE is_deleted = 0")
     long countAllUsers();
 
+    /**
+     * 根据公司ID分页查询用户
+     * @param companyId 公司ID
+     * @param offset 偏移量
+     * @param limit 数量
+     * @return 用户列表
+     */
+    @Select("SELECT * FROM user WHERE company_id = #{companyId} AND is_deleted = 0 ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    List<User> findUsersWithPaginationByCompanyId(@Param("companyId") Long companyId, @Param("offset") int offset, @Param("limit") int limit);
+
+    /**
+     * 根据公司ID计算用户总数
+     * @param companyId 公司ID
+     * @return 用户总数
+     */
+    @Select("SELECT COUNT(*) FROM user WHERE company_id = #{companyId} AND is_deleted = 0")
+    long countAllUsersByCompanyId(@Param("companyId") Long companyId);
+
+    /**
+     * 将用户从公司移除 (仅将company_id设为NULL)
+     * @param uuid 用户UUID
+     * @return 受影响的行数
+     */
+    @Update("UPDATE user SET company_id = NULL, updated_at = NOW() WHERE uuid = #{uuid}")
+    int removeUserFromCompany(@Param("uuid") String uuid);
 }

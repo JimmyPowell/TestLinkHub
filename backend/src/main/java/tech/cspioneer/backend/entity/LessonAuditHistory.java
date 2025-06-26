@@ -18,4 +18,5 @@ public class LessonAuditHistory {
     private String comments;
     private Integer isDeleted;
     private LocalDateTime createdAt;
+    private String uuid;
 }
