@@ -15,56 +15,14 @@ public interface LessonVersionMapper {
     @Update("UPDATE lesson_version SET lesson_id=#{lessonId}, version=#{version}, name=#{name}, description=#{description}, image_url=#{imageUrl}, author_name=#{authorName}, sort_order=#{sortOrder}, status=#{status}, creator_id=#{creatorId}, is_deleted=#{isDeleted} WHERE id=#{id}")
     int update(LessonVersion lessonVersion);
 
-    @Delete("DELETE FROM lesson_version WHERE id=#{id}")
-    int deleteById(@Param("id") Long id);
-
     @Select("SELECT * FROM lesson_version WHERE id=#{id} AND is_deleted = 0")
     LessonVersion selectById(@Param("id") Long id);
 
-    @Select("SELECT * FROM lesson_version WHERE uuid=#{uuid}")
+    @Select("SELECT * FROM lesson_version WHERE uuid=#{uuid} AND is_deleted = 0")
     LessonVersion selectByUuid(@Param("uuid") String uuid);
 
-    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId} AND version=#{currentVersionId}")
-    LessonVersion selectByLessonId(@Param("lessonId") Long lessonId, @Param("currentVersionId") Long currentVersionId);
-
-    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId}")
+    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId} AND is_deleted = 0")
     List<LessonVersion> selectAllByLessonId(@Param("lessonId") Long lessonId);
-
-    // 分页动态查询
-    @Select({
-        "<script>",
-        "SELECT * FROM lesson_version",
-        "<where>",
-        "  <if test='status != null'>AND status = #{status}</if>",
-        "  <if test='lessonId != null'>AND lesson_id = #{lessonId}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
-        "</where>",
-        "ORDER BY created_at DESC",
-        "LIMIT #{pageSize} OFFSET #{offset}",
-        "</script>"
-    })
-    List<LessonVersion> selectPage(@Param("status") String status,
-                                   @Param("lessonId") Long lessonId,
-                                   @Param("isDeleted") Boolean isDeleted,
-                                   @Param("pageSize") int pageSize,
-                                   @Param("offset") int offset);
-
-    @Select({
-        "<script>",
-        "SELECT COUNT(*) FROM lesson_version",
-        "<where>",
-        "  <if test='status != null'>AND status = #{status}</if>",
-        "  <if test='lessonId != null'>AND lesson_id = #{lessonId}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
-        "</where>",
-        "</script>"
-    })
-    int countPage(@Param("status") String status,
-                  @Param("lessonId") Long lessonId,
-                  @Param("isDeleted") Boolean isDeleted);
-
-    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId} AND id=#{versionId}")
-    LessonVersion selectByLessonIdAndVersionId(@Param("lessonId") Long lessonId, @Param("currentVersionId") Long currentVersionId);
 
     @Update({
         "<script>",

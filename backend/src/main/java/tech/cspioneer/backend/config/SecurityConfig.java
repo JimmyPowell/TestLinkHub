@@ -99,7 +99,7 @@ public class SecurityConfig {
                         return new org.springframework.security.authorization.AuthorizationDecision(ok);
                     })
 
-
+                    .requestMatchers("/api/root/lesson/**").hasAuthority("ADMIN")
 
 
                 // 其他所有请求需要认证

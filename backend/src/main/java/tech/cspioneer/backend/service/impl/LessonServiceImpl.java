@@ -5,11 +5,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tech.cspioneer.backend.entity.*;
 import tech.cspioneer.backend.entity.dto.response.*;
+import tech.cspioneer.backend.entity.enums.RelatedObjectType;
 import tech.cspioneer.backend.mapper.*;
 import tech.cspioneer.backend.service.LessonService;
 import tech.cspioneer.backend.exception.LessonServiceException;
 import tech.cspioneer.backend.entity.dto.request.LessonDetailRequest;
 import tech.cspioneer.backend.entity.dto.request.LessonSearchRequest;
+import tech.cspioneer.backend.service.NotificationService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -26,6 +28,10 @@ public class LessonServiceImpl implements LessonService {
     private UserMapper userMapper;
     @Autowired
     private CompanyMapper companyMapper;
+    @Autowired
+    private NotificationService notificationService;
+    @Autowired
+    private LessonAuditHistoryMapper lessonAuditHistoryMapper;
 
     @Override
     @Transactional
@@ -71,19 +77,20 @@ public class LessonServiceImpl implements LessonService {
                 lesson.setPublisherId(company.getId());
                 lesson.setStatus("pending_review");
                 lesson.setCurrentVersionId(null);
-                lesson.setPendingVersionId(Long.valueOf(version.getVersion()));
+                lesson.setPendingVersionId(0L);
                 lessonMapper.insert(lesson);
                 Lesson newLesson = lessonMapper.selectByUuid(lesson.getUuid());
                 version.setLessonId(newLesson.getId());
                 version.setCreatorId(company.getId());
                 version.setStatus("pending_review");
                 lessonVersionMapper.insert(version);
-                System.out.println(2);
+                lesson.setPendingVersionId(lessonVersionMapper.selectByUuid(version.getUuid()).getId());
+                lessonMapper.update(lesson);
             } else if ("ADMIN".equals(identity)) {
                 User user = userMapper.findByUuid(uuid);
                 lesson.setPublisherId(user.getId());
                 lesson.setStatus("active");
-                lesson.setCurrentVersionId(Long.valueOf(version.getVersion()));
+                lesson.setCurrentVersionId(0L);
                 lesson.setPendingVersionId(null);
                 lessonMapper.insert(lesson);
                 Lesson newLesson = lessonMapper.selectByUuid(lesson.getUuid());
@@ -91,6 +98,10 @@ public class LessonServiceImpl implements LessonService {
                 version.setCreatorId(user.getId());
                 version.setStatus("active");
                 lessonVersionMapper.insert(version);
+                lesson.setCurrentVersionId(lessonVersionMapper.selectByUuid(version.getUuid()).getId());
+                lessonMapper.update(lesson);
+                user.setLessonCount(user.getLessonCount() + 1);
+                userMapper.update(user);
             } else {
                 return -1; // 其他身份不允许
             }
@@ -232,7 +243,7 @@ public class LessonServiceImpl implements LessonService {
             lessonMapper.update(lesson);
         } else if (identity.equals("COMPANY")) {
             lesson.setPendingVersionId(lessonVersionMapper.selectByUuid(newVersion.getUuid()).getId());
-            lesson.setStatus("archived");
+            lesson.setStatus("pending_review");
             lesson.setUpdatedAt(LocalDateTime.now());
             lessonMapper.update(lesson);
         }
@@ -333,17 +344,79 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     public int approveLesson(String uuid, Map<String, Object> approvalBody) {
-        return 0;
+        // 1. 查找课程
+        Lesson lesson = lessonMapper.selectByUuid(uuid);
+        if (lesson == null) return -1;
+        Long pendingVersionId = lesson.getPendingVersionId();
+        if (pendingVersionId == null) return -1;
+        LessonVersion pendingVersion = lessonVersionMapper.selectById(pendingVersionId);
+        if (pendingVersion == null) return -1;
+        String result = (String) approvalBody.get("result"); // "approved" or "rejected"
+        String comments = (String) approvalBody.get("comments");
+        // 2. 审批通过
+        Long auditorId = approvalBody.get("auditorId") != null ? ((Number)approvalBody.get("auditorId")).longValue() : null;
+        if ("approved".equalsIgnoreCase(result)) {
+            // 归档原currentVersion
+            Long currentVersionId = lesson.getCurrentVersionId();
+            if (currentVersionId != null) {
+                LessonVersion oldVersion = lessonVersionMapper.selectById(currentVersionId);
+                if (oldVersion != null) {
+                    oldVersion.setStatus("archived");
+                    lessonVersionMapper.update(oldVersion);
+                    // 归档后将其所有资源设为inactive
+                    List<LessonResources> oldResources = lessonResourceMapper.selectByLessonVersionId(oldVersion.getId());
+                    if (oldResources != null) {
+                        for (LessonResources res : oldResources) {
+                            res.setStatus("inactive");
+                            lessonResourceMapper.update(res);
+                        }
+                    }
+                }
+            }
+            // 更新pendingVersion为active
+            pendingVersion.setStatus("active");
+            lessonVersionMapper.update(pendingVersion);
+            // 更新lesson指针
+            lesson.setCurrentVersionId(pendingVersionId);
+            lesson.setPendingVersionId(null);
+            lesson.setStatus("active");
+            lesson.setUpdatedAt(java.time.LocalDateTime.now());
+            lessonMapper.update(lesson);
+            // 通知发布者
+            sendLessonApprovalNotification(lesson, pendingVersion, true, comments);
+            // 插入审批历史
+            insertLessonAuditHistory(pendingVersionId, auditorId, "approved", comments);
+            return 1;
+        } else if ("rejected".equalsIgnoreCase(result)) {
+            // 更新pendingVersion为rejected
+            pendingVersion.setStatus("rejected");
+            lessonVersionMapper.update(pendingVersion);
+            // lesson pendingVersionId设为null，状态archived
+            lesson.setPendingVersionId(null);
+            lesson.setStatus("archived");
+            lesson.setUpdatedAt(LocalDateTime.now());
+            lessonMapper.update(lesson);
+            // 通知发布者
+            sendLessonApprovalNotification(lesson, pendingVersion, false, comments);
+            // 插入审批历史
+            insertLessonAuditHistory(pendingVersionId, auditorId, "rejected", comments);
+            return 1;
+        }
+        return -1;
     }
 
-    @Override
-    public Map<String, Object> getLessonReviewList(Map<String, Object> pageBody) {
-        return Map.of();
-    }
-
-    @Override
-    public int deleteLessonReviewHistory(List<String> uuids) {
-        return 0;
+    // 审批通知辅助方法
+    private void sendLessonApprovalNotification(Lesson lesson, LessonVersion version, boolean approved, String comments) {
+        String title = approved ? "课程审核通过" : "课程审核未通过";
+        String content = approved ?
+                String.format("您的课程《%s》已通过审核。", version.getName()) :
+                String.format("您的课程《%s》未通过审核，原因：%s", version.getName(), comments != null ? comments : "无");
+        // 判断发布者是公司还是管理员
+        if (lesson.getPublisherId() != null) {
+            // 这里假设publisherId为公司id，实际可根据业务调整
+            System.out.println("go");
+            notificationService.sendSystemNotificationToUser(lesson.getPublisherId(), title, content, RelatedObjectType.LESSON, lesson.getId());
+        }
     }
 
     @Override
@@ -364,5 +437,35 @@ public class LessonServiceImpl implements LessonService {
     @Override
     public List<Map<String, Object>> getReviewLessonsWithPendingVersion(int pageSize, int offset) {
         return lessonMapper.selectReviewLessonsWithPendingVersion(pageSize, offset);
+    }
+
+    // 审批历史插入辅助方法
+    private void insertLessonAuditHistory(Long lessonVersionId, Long auditorId, String auditStatus, String comments) {
+        LessonAuditHistory history = new LessonAuditHistory();
+        history.setLessonVersionId(lessonVersionId != null ? lessonVersionId.toString() : null);
+        history.setAuditorId(auditorId);
+        history.setAuditStatus(auditStatus);
+        history.setComments(comments);
+        history.setIsDeleted(0);
+        history.setCreatedAt(java.time.LocalDateTime.now());
+        lessonAuditHistoryMapper.insert(history);
+    }
+
+    @Override
+    public Map<String, Object> getLessonAuditHistoryPage(String auditStatus, String beginTime, String endTime, int page, int size) {
+        int offset = page * size;
+        List<LessonAuditHistory> list = lessonAuditHistoryMapper.selectHistoryPage(auditStatus, beginTime, endTime, size, offset);
+        // 查询总数
+        int total = lessonAuditHistoryMapper.countHistory(auditStatus, beginTime, endTime);
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("list", list);
+        return result;
+    }
+
+    @Override
+    public int softDeleteLessonAuditHistory(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return 0;
+        return lessonAuditHistoryMapper.softDeleteHistoryByIds(ids);
     }
 } 

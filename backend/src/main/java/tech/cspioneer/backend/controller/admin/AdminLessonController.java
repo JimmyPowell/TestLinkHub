@@ -5,12 +5,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import tech.cspioneer.backend.entity.dto.request.LessonDetailRequest;
-import tech.cspioneer.backend.entity.dto.request.LessonSearchRequest;
-import tech.cspioneer.backend.entity.dto.response.LessonListResponse;
-import tech.cspioneer.backend.entity.dto.response.LessonDetailResponse;
-import tech.cspioneer.backend.entity.dto.response.LessonSearchResponse;
+import tech.cspioneer.backend.entity.User;
 import tech.cspioneer.backend.exception.LessonServiceException;
+import tech.cspioneer.backend.mapper.UserMapper;
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.service.LessonService;
 import tech.cspioneer.backend.utils.JwtUtils;
@@ -26,6 +23,8 @@ public class AdminLessonController {
     private LessonService lessonService;
     @Autowired
     private JwtUtils jwtUtils;
+    @Autowired
+    private UserMapper userMapper;
 
     @PostMapping("/admin/lesson/upload")
     public ResponseEntity<ApiResponse<Void>> uploadLesson(@RequestBody Map<String, Object> lessonRequestBody,
@@ -113,19 +112,73 @@ public class AdminLessonController {
         }
     }
 
-    @PostMapping("/root/lesson/review/history")
-    public ResponseEntity<?> getLessonReviewHistory(@RequestBody(required = false) Map<String, Object> pageBody) {
-        return ResponseEntity.ok().body(Map.of("code", 200, "message", "历史查询成功", "data", null));
+    @GetMapping("/root/lesson/review/history")
+    public ResponseEntity<?> getLessonReviewHistory(@RequestParam(value = "auditStatus", required = false) String auditStatus,
+                                                   @RequestParam(value = "beginTime", required = false) String beginTime,
+                                                   @RequestParam(value = "endTime", required = false) String endTime,
+                                                   @RequestParam(value = "page", defaultValue = "0") int page,
+                                                   @RequestParam(value = "size", defaultValue = "10") int size,
+                                                   @AuthenticationPrincipal String userUuid,
+                                                   Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!"ADMIN".equals(identity)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
+        }
+        Map<String, Object> data = lessonService.getLessonAuditHistoryPage(auditStatus, beginTime, endTime, page, size);
+        return ResponseEntity.ok().body(Map.of("code", 200, "message", "历史查询成功", "data", data));
     }
 
     @PostMapping("/root/lesson/review/approval")
-    public ResponseEntity<?> approveLesson(@RequestParam(value = "uuid", required = false) String uuid,
-                                           @RequestBody Map<String, Object> approvalBody) {
-        return ResponseEntity.ok().body(Map.of("code", 200, "message", "审批成功", "data", null));
+    public ResponseEntity<?> approveLesson(@RequestParam String uuid,
+                                           @RequestBody Map<String, Object> approvalBody,
+                                           @AuthenticationPrincipal String userUuid,
+                                           Authentication authentication) {
+        // 权限校验：只有ADMIN能访问
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!"ADMIN".equals(identity)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
+        }
+        // 查user表主键id作为auditorId
+        Long auditorId = null;
+        if (userUuid != null) {
+            User user = userMapper.findByUuid(userUuid);
+            if (user != null) auditorId = user.getId();
+        }
+        approvalBody.put("auditorId", auditorId);
+        int result = lessonService.approveLesson(uuid, approvalBody);
+        if (result == 1) {
+            return ResponseEntity.ok(ApiResponse.success(200, "审批操作成功", null));
+        } else {
+            return ResponseEntity.badRequest().body(ApiResponse.error(400, "审批操作失败"));
+        }
     }
 
     @GetMapping("/root/lesson/review/list")
-    public ResponseEntity<?> getLessonReviewList(@RequestBody(required = false) Map<String, Object> pageBody) {
+    public ResponseEntity<?> getLessonReviewList(@RequestBody(required = false) Map<String, Object> pageBody,
+                                                 @AuthenticationPrincipal String userUuid,
+                                                 Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!"ADMIN".equals(identity)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
+        }
         int page = 0, size = 10;
         if (pageBody != null) {
             if (pageBody.get("page") != null) page = (int) pageBody.get("page");
@@ -141,7 +194,20 @@ public class AdminLessonController {
     }
 
     @DeleteMapping("/root/lesson/review/history/delete")
-    public ResponseEntity<?> deleteLessonReviewHistory(@RequestParam(value = "uuids", required = false) List<String> uuids) {
-        return ResponseEntity.ok().body(Map.of("code", 200, "message", "删除成功", "data", null));
+    public ResponseEntity<?> deleteLessonReviewHistory(@RequestBody List<Long> ids,
+                                                      @AuthenticationPrincipal String userUuid,
+                                                      Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!"ADMIN".equals(identity)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
+        }
+        int deleted = lessonService.softDeleteLessonAuditHistory(ids);
+        return ResponseEntity.ok().body(Map.of("code", 200, "message", "删除成功", "data", deleted));
     }
 }

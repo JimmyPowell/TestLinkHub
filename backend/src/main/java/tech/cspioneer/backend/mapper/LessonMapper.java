@@ -16,76 +16,8 @@ public interface LessonMapper {
     @Update("UPDATE lesson SET publisher_id=#{publisherId}, status=#{status}, current_version_id=#{currentVersionId}, pending_version_id=#{pendingVersionId}, is_deleted=#{isDeleted}, updated_at=#{updatedAt} WHERE id=#{id}")
     int update(Lesson lesson);
 
-    @Delete("DELETE FROM lesson WHERE id=#{id}")
-    int deleteById(@Param("id") Long id);
-
-    @Select("SELECT * FROM lesson WHERE id=#{id}")
-    Lesson selectById(@Param("id") Long id);
-
     @Select("SELECT * FROM lesson WHERE uuid=#{uuid}")
     Lesson selectByUuid(@Param("uuid") String uuid);
-
-    @Select("SELECT * FROM lesson")
-    List<Lesson> selectAll();
-
-    // 分页动态查询
-    @Select({
-        "<script>",
-        "SELECT * FROM lesson",
-        "<where>",
-        "  <if test='status != null'>AND status = #{status}</if>",
-        "  <if test='publisherId != null'>AND publisher_id = #{publisherId}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
-        "</where>",
-        "ORDER BY created_at DESC",
-        "LIMIT #{pageSize} OFFSET #{offset}",
-        "</script>"
-    })
-    List<Lesson> selectPage(@Param("status") String status,
-                            @Param("publisherId") Long publisherId,
-                            @Param("isDeleted") Boolean isDeleted,
-                            @Param("pageSize") int pageSize,
-                            @Param("offset") int offset);
-
-    @Select({
-        "<script>",
-        "SELECT COUNT(*) FROM lesson",
-        "<where>",
-        "  <if test='status != null'>AND status = #{status}</if>",
-        "  <if test='publisherId != null'>AND publisher_id = #{publisherId}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
-        "</where>",
-        "</script>"
-    })
-    int countPage(@Param("status") String status,
-                  @Param("publisherId") Long publisherId,
-                  @Param("isDeleted") Boolean isDeleted);
-
-    @Select({
-        "<script>",
-        "SELECT * FROM lesson",
-        "<where>",
-        "  <if test='name != null and name != \"\"'>AND name LIKE CONCAT('%', #{name}, '%')</if>",
-        "  <if test='authorName != null and authorName != \"\"'>AND author_name LIKE CONCAT('%', #{authorName}, '%')</if>",
-        "  <if test='startTime != null'>AND created_at &gt;= #{startTime}</if>",
-        "  <if test='endTime != null'>AND created_at &lt;= #{endTime}</if>",
-        "  <if test='status != null'>AND status = #{status}</if>",
-        "  <if test='publisherId != null'>AND publisher_id = #{publisherId}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
-        "</where>",
-        "ORDER BY created_at DESC",
-        "LIMIT #{pageSize} OFFSET #{offset}",
-        "</script>"
-    })
-    List<Lesson> selectPageAdvanced(@Param("name") String name,
-                                    @Param("authorName") String authorName,
-                                    @Param("startTime") String startTime,
-                                    @Param("endTime") String endTime,
-                                    @Param("status") String status,
-                                    @Param("publisherId") Long publisherId,
-                                    @Param("isDeleted") Boolean isDeleted,
-                                    @Param("pageSize") int pageSize,
-                                    @Param("offset") int offset);
 
     @Select({
         "<script>",
@@ -172,7 +104,7 @@ public interface LessonMapper {
         "LEFT JOIN lesson_version v ON l.pending_version_id = v.id",
         "<where>",
         "  l.is_deleted = 0",
-        "  AND (l.status = 'archived' OR l.status = 'pending_review')",
+        "  AND ( l.status = 'pending_review')",
         "</where>",
         "ORDER BY l.updated_at DESC",
         "LIMIT #{pageSize} OFFSET #{offset}",

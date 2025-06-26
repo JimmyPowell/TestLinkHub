@@ -15,16 +15,7 @@ public interface LessonResourceMapper {
     @Update("UPDATE lesson_resources SET lesson_version_id=#{lessonVersionId}, resources_url=#{resourcesUrl}, resources_type=#{resourcesType}, sort_order=#{sortOrder}, status=#{status}, is_deleted=#{isDeleted}, updated_at=#{updatedAt} WHERE id=#{id}")
     int update(LessonResources lessonResources);
 
-    @Delete("DELETE FROM lesson_resources WHERE id=#{id}")
-    int deleteById(@Param("id") Long id);
-
-    @Select("SELECT * FROM lesson_resources WHERE id=#{id}")
-    LessonResources selectById(@Param("id") Long id);
-
-    @Select("SELECT * FROM lesson_resources WHERE uuid=#{uuid}")
-    LessonResources selectByUuid(@Param("uuid") String uuid);
-
-    @Select("SELECT * FROM lesson_resources WHERE lesson_version_id=#{lessonVersionId} ")
+    @Select("SELECT * FROM lesson_resources WHERE lesson_version_id=#{lessonVersionId} AND is_deleted = 0")
     List<LessonResources> selectByLessonVersionId(@Param("lessonVersionId") Long lessonVersionId);
 
     @Update({

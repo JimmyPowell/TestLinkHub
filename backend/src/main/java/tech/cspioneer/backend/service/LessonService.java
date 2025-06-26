@@ -28,14 +28,15 @@ public interface  LessonService {
     // 审核操作
     int approveLesson(String uuid, Map<String, Object> approvalBody);
 
-    // 审核历史
-    Map<String, Object> getLessonReviewList(Map<String, Object> pageBody);
-
-    // 删除审核历史
-    int deleteLessonReviewHistory(List<String> uuids);
-
     // 课程搜索
     LessonSearchResponse searchLesson(LessonSearchRequest req);
 
+    // 审核列表
     List<Map<String, Object>> getReviewLessonsWithPendingVersion(int pageSize, int offset);
+
+    // 审核历史
+    Map<String, Object> getLessonAuditHistoryPage(String auditStatus, String beginTime, String endTime, int page, int size);
+
+    // 删除审核历史
+    int softDeleteLessonAuditHistory(List<Long> ids);
 }
