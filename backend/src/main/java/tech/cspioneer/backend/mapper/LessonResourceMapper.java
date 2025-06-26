@@ -24,46 +24,17 @@ public interface LessonResourceMapper {
     @Select("SELECT * FROM lesson_resources WHERE uuid=#{uuid}")
     LessonResources selectByUuid(@Param("uuid") String uuid);
 
-    @Select("SELECT * FROM lesson_resources WHERE lesson_version_id=#{lessonVersionId}")
+    @Select("SELECT * FROM lesson_resources WHERE lesson_version_id=#{lessonVersionId} ")
     List<LessonResources> selectByLessonVersionId(@Param("lessonVersionId") Long lessonVersionId);
 
-    @Select("SELECT * FROM lesson_resources")
-    List<LessonResources> selectAll();
-
-    // 分页动态查询
-    @Select({
+    @Update({
         "<script>",
-        "SELECT * FROM lesson_resources",
-        "<where>",
-        "  <if test='status != null'>AND status = #{status}</if>",
-        "  <if test='lessonVersionId != null'>AND lesson_version_id = #{lessonVersionId}</if>",
-        "  <if test='resourcesType != null'>AND resources_type = #{resourcesType}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
-        "</where>",
-        "ORDER BY created_at DESC",
-        "LIMIT #{pageSize} OFFSET #{offset}",
+        "UPDATE lesson_resources SET is_deleted=1 WHERE lesson_version_id IN",
+        "<foreach collection='versionIds' item='id' open='(' separator=',' close=')'>",
+        "  #{id}",
+        "</foreach>",
         "</script>"
     })
-    List<LessonResources> selectPage(@Param("status") String status,
-                                     @Param("lessonVersionId") Long lessonVersionId,
-                                     @Param("resourcesType") String resourcesType,
-                                     @Param("isDeleted") Boolean isDeleted,
-                                     @Param("pageSize") int pageSize,
-                                     @Param("offset") int offset);
+    int softDeleteResourcesByVersionIds(@Param("versionIds") List<Long> versionIds);
 
-    @Select({
-        "<script>",
-        "SELECT COUNT(*) FROM lesson_resources",
-        "<where>",
-        "  <if test='status != null'>AND status = #{status}</if>",
-        "  <if test='lessonVersionId != null'>AND lesson_version_id = #{lessonVersionId}</if>",
-        "  <if test='resourcesType != null'>AND resources_type = #{resourcesType}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
-        "</where>",
-        "</script>"
-    })
-    int countPage(@Param("status") String status,
-                  @Param("lessonVersionId") Long lessonVersionId,
-                  @Param("resourcesType") String resourcesType,
-                  @Param("isDeleted") Boolean isDeleted);
 }

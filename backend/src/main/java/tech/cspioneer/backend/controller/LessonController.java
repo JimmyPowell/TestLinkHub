@@ -1,9 +1,16 @@
 package tech.cspioneer.backend.controller;
 
+import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +18,11 @@ import tech.cspioneer.backend.service.LessonService;
 import tech.cspioneer.backend.utils.JwtUtils;
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.exception.LessonServiceException;
+import tech.cspioneer.backend.entity.dto.response.LessonListResponse;
+import tech.cspioneer.backend.entity.dto.request.LessonDetailRequest;
+import tech.cspioneer.backend.entity.dto.response.LessonDetailResponse;
+import tech.cspioneer.backend.entity.dto.request.LessonSearchRequest;
+import tech.cspioneer.backend.entity.dto.response.LessonSearchResponse;
 
 @RestController
 @RequestMapping("/api")
@@ -29,19 +41,18 @@ public class LessonController {
      */
     @PostMapping("/admin/lesson/upload")
     public ResponseEntity<ApiResponse<Void>> uploadLesson(@RequestBody Map<String, Object> lessonRequestBody,
-                                          HttpServletRequest request) {
+                                                          @AuthenticationPrincipal String userUuid,
+                                                          Authentication authentication) {
         try {
-            String token = request.getHeader("Authorization");
-            if (token != null && token.startsWith("Bearer ")) {
-                token = token.substring(7);
-            }
-            Map<String, Object> payload = jwtUtils.decode(token);
-            String userUuid = (String) payload.get("uid");
-            String identity = (String) payload.get("identity");
-            System.out.println("身份"+identity);
-            lessonRequestBody.put("userId", userUuid);
-            lessonRequestBody.put("identity", identity);
 
+            if (authentication != null && authentication.isAuthenticated()) {
+                String identity = authentication.getAuthorities().stream()
+                        .findFirst()
+                        .map(authority -> authority.getAuthority())
+                        .orElse("UNKNOWN");
+                lessonRequestBody.put("identity", identity);
+            }
+            lessonRequestBody.put("userId", userUuid);
             //
             int result = lessonService.uploadLesson(lessonRequestBody);
             if (result == -1) {
@@ -59,41 +70,144 @@ public class LessonController {
     // 2. 课程修改
     @PutMapping("/admin/lesson/update")
     public ResponseEntity<?> updateLesson(@RequestParam(value = "uuid", required = false) String uuid,
-                                          @RequestBody Map<String, Object> lessonRequestBody) {
-        // TODO: 调用service实现课程修改
-        return ResponseEntity.ok().body(Map.of("code", 200, "message", "修改成功", "data", null));
+                                          @RequestBody Map<String, Object> lessonRequestBody,
+                                          @AuthenticationPrincipal String userUuid,
+                                          Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!("USER".equals(identity) || "COMPANY".equals(identity) || "ADMIN".equals(identity))) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, "未知身份"));
+        }
+        if ("USER".equals(identity)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
+        }
+        // COMPANY和ADMIN可以访问
+        lessonRequestBody.put("identity", identity);
+        lessonRequestBody.put("userId", userUuid);
+        try {
+            int result = lessonService.updateLesson(uuid, lessonRequestBody);
+            if (result == -1) {
+                return ResponseEntity.ok().body(ApiResponse.error(403, "无权限"));
+            }
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("code", 200);
+            resp.put("message", "修改成功");
+            resp.put("data", null);
+            return ResponseEntity.ok().body(resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
+        }
     }
 
     // 3. 课程删除
     @DeleteMapping("/admin/lesson/delete")
-    public ResponseEntity<?> deleteLesson(@RequestParam(value = "uuids", required = false) List<String> uuids) {
-        // TODO: 调用service实现课程删除
-        return ResponseEntity.ok().body(Map.of("code", 200, "message", "删除成功", "data", null));
+    public ResponseEntity<?> deleteLesson(@RequestBody List<String> uuids,
+                                          @AuthenticationPrincipal String userUuid,
+                                          Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!("USER".equals(identity) || "COMPANY".equals(identity) || "ADMIN".equals(identity))) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, "未知身份"));
+        }
+        if ("USER".equals(identity) || "COMPANY".equals(identity)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
+        }
+        try {
+            int deleted = lessonService.deleteLesson(uuids);
+            return ResponseEntity.ok().body(Map.of("code", 200, "message", "删除成功", "data", deleted));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
+        }
     }
 
-    // 4. 课程搜索（用户端）
-    @GetMapping("/user/lesson/find")
-    public ResponseEntity<?> findLesson(@RequestBody(required = false) Map<String, Object> searchBody) {
-        // TODO: 调用service实现课程搜索
-        return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功，课程列表如下", "data", Map.of("total", 0, "list", List.of())));
-    }
-
-    // 5. 课程浏览（用户端）
+    // 4. 课程浏览（用户端）
     @GetMapping("/user/lesson/all")
-    public ResponseEntity<?> getAllLessons(@RequestBody(required = false) Map<String, Object> pageBody) {
-        // TODO: 调用service实现课程浏览
-        return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功，符合条件课程如下", "data", Map.of("total", 0, "list", List.of())));
+    public ResponseEntity<?> getAllLessons(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String authorName,
+            @RequestParam(required = false) String beginTime,
+            @RequestParam(required = false) String endTime,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal String userUuid,
+            Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!("USER".equals(identity) || "COMPANY".equals(identity) || "ADMIN".equals(identity))) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, "未知身份"));
+        }
+        try {
+            LessonListResponse result = lessonService.getAllLessons(name, authorName, beginTime, endTime, page, size);
+            return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功，符合条件课程如下", "data", result));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
+        }
     }
 
-    // 6. 课程详情
+    // 5. 课程详情
     @GetMapping("/user/lesson/detail")
-    public ResponseEntity<?> getLessonDetail(@RequestParam(value = "uuid", required = false) String uuid) {
-        // TODO: 调用service实现课程详情
-        return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功，详细信息如下", "data", Map.of()));
+    public ResponseEntity<?> getLessonDetail(@RequestBody LessonDetailRequest req,
+                                             @AuthenticationPrincipal String userUuid,
+                                             Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!("USER".equals(identity) || "COMPANY".equals(identity) || "ADMIN".equals(identity))) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, "未知身份"));
+        }
+        try {
+            LessonDetailResponse result = lessonService.getLessonDetail(req);
+            return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功，详细信息如下", "data", result));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
+        }
+    }
+
+    // 6. 课程搜索
+    @GetMapping("/user/lesson/search")
+    public ResponseEntity<?> searchLesson(@RequestBody LessonSearchRequest req,
+                                          @AuthenticationPrincipal String userUuid,
+                                          Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!("USER".equals(identity) || "COMPANY".equals(identity) || "ADMIN".equals(identity))) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, "未知身份"));
+        }
+        try {
+            LessonSearchResponse result = lessonService.searchLesson(req);
+            return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功，课程搜索如下", "data", result));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
+        }
     }
 
     // 7. 审核列表（超级管理员）
-    @GetMapping("/root/lesson/review/history")
+    @PostMapping("/root/lesson/review/history")
     public ResponseEntity<?> getLessonReviewHistory(@RequestBody(required = false) Map<String, Object> pageBody) {
         // TODO: 调用service实现审核列表
         return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功，待审核课程如下", "data", Map.of("total", 0, "list", List.of())));

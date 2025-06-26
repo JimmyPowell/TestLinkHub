@@ -24,11 +24,11 @@ public interface LessonVersionMapper {
     @Select("SELECT * FROM lesson_version WHERE uuid=#{uuid}")
     LessonVersion selectByUuid(@Param("uuid") String uuid);
 
-    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId}")
-    List<LessonVersion> selectByLessonId(@Param("lessonId") Long lessonId);
+    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId} AND version=#{currentVersionId}")
+    LessonVersion selectByLessonId(@Param("lessonId") Long lessonId, @Param("currentVersionId") Long currentVersionId);
 
-    @Select("SELECT * FROM lesson_version")
-    List<LessonVersion> selectAll();
+    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId}")
+    List<LessonVersion> selectAllByLessonId(@Param("lessonId") Long lessonId);
 
     // 分页动态查询
     @Select({
@@ -62,4 +62,17 @@ public interface LessonVersionMapper {
     int countPage(@Param("status") String status,
                   @Param("lessonId") Long lessonId,
                   @Param("isDeleted") Boolean isDeleted);
+
+    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId} AND id=#{versionId}")
+    LessonVersion selectByLessonIdAndVersionId(@Param("lessonId") Long lessonId, @Param("currentVersionId") Long currentVersionId);
+
+    @Update({
+        "<script>",
+        "UPDATE lesson_version SET is_deleted=1 WHERE lesson_id IN",
+        "<foreach collection='lessonIds' item='id' open='(' separator=',' close=')'>",
+        "  #{id}",
+        "</foreach>",
+        "</script>"
+    })
+    int softDeleteVersionsByLessonIds(@Param("lessonIds") List<Long> lessonIds);
 }
