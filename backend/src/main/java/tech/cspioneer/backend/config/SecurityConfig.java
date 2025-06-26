@@ -2,6 +2,7 @@ package tech.cspioneer.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -19,6 +20,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -75,6 +77,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login/user").permitAll()
                 .requestMatchers("/api/auth/login/company").permitAll()
                 .requestMatchers("/api/auth/forgot-password").permitAll() // 预留忘记密码端点
+                    .requestMatchers("/api/user/lesson/**").permitAll()
                 // 允许所有人访问 Swagger UI 和 API 文档
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // 允许所有人访问静态资源
@@ -96,7 +99,7 @@ public class SecurityConfig {
                         return new org.springframework.security.authorization.AuthorizationDecision(ok);
                     })
 
-
+                    .requestMatchers("/api/root/lesson/**").hasAuthority("ADMIN")
 
 
                 // 其他所有请求需要认证

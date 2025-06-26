@@ -27,26 +27,48 @@ public interface LessonAuditHistoryMapper {
     @Select("SELECT * FROM lesson_audit_history")
     List<LessonAuditHistory> selectAll();
 
-    // 分页动态查询
+    /**
+     * 分页动态查询审核历史，支持审核状态、起止时间筛选
+     * @param auditStatus 审核状态（可选）
+     * @param beginTime 起始时间（可选）
+     * @param endTime 结束时间（可选）
+     * @param pageSize 每页数量
+     * @param offset 偏移量
+     * @return 审核历史列表
+     */
     @Select({
         "<script>",
         "SELECT * FROM lesson_audit_history",
         "<where>",
-        "  <if test='auditStatus != null'>AND audit_status = #{auditStatus}</if>",
-        "  <if test='auditorId != null'>AND auditor_id = #{auditorId}</if>",
-        "  <if test='lessonVersionId != null'>AND lesson_version_id = #{lessonVersionId}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
+        "  <if test='auditStatus != null and auditStatus != \"\"'>AND audit_status = #{auditStatus}</if>",
+        "  <if test='beginTime != null and beginTime != \"\"'>AND created_at &gt;= #{beginTime}</if>",
+        "  <if test='endTime != null and endTime != \"\"'>AND created_at &lt;= #{endTime}</if>",
+        "  AND is_deleted = 0",
         "</where>",
         "ORDER BY created_at DESC",
         "LIMIT #{pageSize} OFFSET #{offset}",
         "</script>"
     })
-    List<LessonAuditHistory> selectPage(@Param("auditStatus") String auditStatus,
-                                        @Param("auditorId") Long auditorId,
-                                        @Param("lessonVersionId") Long lessonVersionId,
-                                        @Param("isDeleted") Boolean isDeleted,
-                                        @Param("pageSize") int pageSize,
-                                        @Param("offset") int offset);
+    List<LessonAuditHistory> selectHistoryPage(@Param("auditStatus") String auditStatus,
+                                               @Param("beginTime") String beginTime,
+                                               @Param("endTime") String endTime,
+                                               @Param("pageSize") int pageSize,
+                                               @Param("offset") int offset);
+
+    /**
+     * 批量软删除审核历史
+     * @param ids 审核历史主键ID列表
+     * @return 受影响行数
+     */
+    @Update({
+        "<script>",
+        "UPDATE lesson_audit_history SET is_deleted=1 WHERE id IN",
+        "<foreach collection='ids' item='id' open='(' separator=',' close=')'>",
+        "  #{id}",
+        "</foreach>",
+        "</script>"
+    })
+    int softDeleteHistoryByIds(@Param("ids") List<Long> ids);
 
     @Select({
         "<script>",
@@ -63,4 +85,22 @@ public interface LessonAuditHistoryMapper {
                   @Param("auditorId") Long auditorId,
                   @Param("lessonVersionId") Long lessonVersionId,
                   @Param("isDeleted") Boolean isDeleted);
+
+    /**
+     * 查询审核历史总数，支持审核状态、起止时间筛选
+     */
+    @Select({
+        "<script>",
+        "SELECT COUNT(*) FROM lesson_audit_history",
+        "<where>",
+        "  <if test='auditStatus != null and auditStatus != \"\"'>AND audit_status = #{auditStatus}</if>",
+        "  <if test='beginTime != null and beginTime != \"\"'>AND created_at &gt;= #{beginTime}</if>",
+        "  <if test='endTime != null and endTime != \"\"'>AND created_at &lt;= #{endTime}</if>",
+        "  AND is_deleted = 0",
+        "</where>",
+        "</script>"
+    })
+    int countHistory(@Param("auditStatus") String auditStatus,
+                    @Param("beginTime") String beginTime,
+                    @Param("endTime") String endTime);
 }

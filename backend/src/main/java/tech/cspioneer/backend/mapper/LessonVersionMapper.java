@@ -15,51 +15,22 @@ public interface LessonVersionMapper {
     @Update("UPDATE lesson_version SET lesson_id=#{lessonId}, version=#{version}, name=#{name}, description=#{description}, image_url=#{imageUrl}, author_name=#{authorName}, sort_order=#{sortOrder}, status=#{status}, creator_id=#{creatorId}, is_deleted=#{isDeleted} WHERE id=#{id}")
     int update(LessonVersion lessonVersion);
 
-    @Delete("DELETE FROM lesson_version WHERE id=#{id}")
-    int deleteById(@Param("id") Long id);
-
-    @Select("SELECT * FROM lesson_version WHERE id=#{id}")
+    @Select("SELECT * FROM lesson_version WHERE id=#{id} AND is_deleted = 0")
     LessonVersion selectById(@Param("id") Long id);
 
-    @Select("SELECT * FROM lesson_version WHERE uuid=#{uuid}")
+    @Select("SELECT * FROM lesson_version WHERE uuid=#{uuid} AND is_deleted = 0")
     LessonVersion selectByUuid(@Param("uuid") String uuid);
 
-    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId}")
-    List<LessonVersion> selectByLessonId(@Param("lessonId") Long lessonId);
+    @Select("SELECT * FROM lesson_version WHERE lesson_id=#{lessonId} AND is_deleted = 0")
+    List<LessonVersion> selectAllByLessonId(@Param("lessonId") Long lessonId);
 
-    @Select("SELECT * FROM lesson_version")
-    List<LessonVersion> selectAll();
-
-    // 分页动态查询
-    @Select({
+    @Update({
         "<script>",
-        "SELECT * FROM lesson_version",
-        "<where>",
-        "  <if test='status != null'>AND status = #{status}</if>",
-        "  <if test='lessonId != null'>AND lesson_id = #{lessonId}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
-        "</where>",
-        "ORDER BY created_at DESC",
-        "LIMIT #{pageSize} OFFSET #{offset}",
+        "UPDATE lesson_version SET is_deleted=1 WHERE lesson_id IN",
+        "<foreach collection='lessonIds' item='id' open='(' separator=',' close=')'>",
+        "  #{id}",
+        "</foreach>",
         "</script>"
     })
-    List<LessonVersion> selectPage(@Param("status") String status,
-                                   @Param("lessonId") Long lessonId,
-                                   @Param("isDeleted") Boolean isDeleted,
-                                   @Param("pageSize") int pageSize,
-                                   @Param("offset") int offset);
-
-    @Select({
-        "<script>",
-        "SELECT COUNT(*) FROM lesson_version",
-        "<where>",
-        "  <if test='status != null'>AND status = #{status}</if>",
-        "  <if test='lessonId != null'>AND lesson_id = #{lessonId}</if>",
-        "  <if test='isDeleted != null'>AND is_deleted = #{isDeleted}</if>",
-        "</where>",
-        "</script>"
-    })
-    int countPage(@Param("status") String status,
-                  @Param("lessonId") Long lessonId,
-                  @Param("isDeleted") Boolean isDeleted);
+    int softDeleteVersionsByLessonIds(@Param("lessonIds") List<Long> lessonIds);
 }
