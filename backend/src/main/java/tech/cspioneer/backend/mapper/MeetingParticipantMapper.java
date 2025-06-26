@@ -1,9 +1,6 @@
 package tech.cspioneer.backend.mapper;
 
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 import tech.cspioneer.backend.entity.MeetingParticipant;
 
 import java.time.LocalDateTime;
@@ -70,5 +67,20 @@ public interface MeetingParticipantMapper {
 """)
     MeetingParticipant findPartByUuid(@Param("partUuid") String partUuid);
 
+    @Select("SELECT * FROM meeting_participant " +
+            "WHERE user_uuid = #{useruuid} " +
+            "ORDER BY apply_time DESC " +
+            "LIMIT #{size} OFFSET #{offset}")
+    List<MeetingParticipant> findPartsByUser(@Param("useruuid") String useruuid,
+                                             @Param("offset") int offset,
+                                             @Param("size") int size);
 
+
+    @Select("SELECT * FROM meeting_participant WHERE meeting_id = #{meetingId} AND user_uuid = #{useruuid} LIMIT 1")
+    MeetingParticipant findByMeetingIdAndUser(@Param("meetingId") Long meetingId,
+                                              @Param("useruuid") String useruuid);
+
+    @Insert("INSERT INTO meeting_participant (meeting_id, user_uuid, reason, apply_time, status) " +
+            "VALUES (#{meetingId}, #{userUuid}, #{reason}, #{applyTime}, #{status})")
+    void insertParticipant(MeetingParticipant participant);
 }

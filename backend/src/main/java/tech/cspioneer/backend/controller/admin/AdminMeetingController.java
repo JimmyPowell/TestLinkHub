@@ -1,5 +1,6 @@
 package tech.cspioneer.backend.controller.admin;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,9 +21,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/meeting")
 public class AdminMeetingController {
-
-    private  MeetingService meetingService;
-    private  MeetingPartService meetingPartService;
+    @Autowired
+    private MeetingService meetingService;
+    @Autowired
+    private MeetingPartService meetingPartService;
 
 
     // 创建会议（仅公司身份可访问）
@@ -32,10 +34,14 @@ public class AdminMeetingController {
             @RequestBody MeetingCreateRequest res,
             @AuthenticationPrincipal String useruuid) {
 
-        meetingService.createMeetingWithVersion(res, useruuid);
-
-        System.out.println("会议创建成功：" + useruuid);
-        return ResponseEntity.ok(ApiResponse.success(200, "会议创建成功", null));
+        try {
+            meetingService.createMeetingWithVersion(res, useruuid);
+            return ResponseEntity.ok(ApiResponse.success(200, "会议创建成功", null));
+        } catch (Exception e) {
+            e.printStackTrace(); // 打印详细异常堆栈
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error(500, "请求体格式错误：" + e.getMessage()));
+        }
     }
 
     // 更新会议（仅公司身份可访问）
@@ -54,12 +60,12 @@ public class AdminMeetingController {
     @PreAuthorize("hasAuthority('COMPANY')")
     @DeleteMapping("/delete")
     public ResponseEntity<ApiResponse<Void>> deleteMeeting(
-            @RequestBody String meetingUuid,
+            @RequestParam String meeting_uuid,
             @AuthenticationPrincipal String useruuid) {
 
-        meetingService.deleteMeeting(meetingUuid);
+        meetingService.deleteMeeting(meeting_uuid);
 
-        System.out.println("会议删除成功：" + meetingUuid);
+        System.out.println("会议删除成功：" + meeting_uuid);
         return ResponseEntity.ok(ApiResponse.success(200, "会议删除成功", null));
     }
 
@@ -75,6 +81,7 @@ public class AdminMeetingController {
             @RequestParam int page,
             @RequestParam int size
     ){
+        //获取参会申请列表
         List<MeetingParticipant> list = meetingPartService.getMeetingPartsByCreator(useruuid,page,size);
 
         //查找改用户名下的会议的申请
@@ -86,11 +93,11 @@ public class AdminMeetingController {
     @PreAuthorize("hasAnyAuthority('COMPANY')")
     @GetMapping("/part")
     public ResponseEntity<ApiResponse<MeetingParticipant>> getpartdetails(
-            @RequestParam String partUuid,
+            @RequestParam String part_uuid,
             @AuthenticationPrincipal String useruuid
     ){
         //1.判断是不是会议创建人，先从part表中找出对应的参会会议，然后看会议的创建人，然后判断这俩是否一致
-        MeetingParticipant part = meetingPartService.findMeetingPartByUuid(partUuid);
+        MeetingParticipant part = meetingPartService.findMeetingPartByUuid(part_uuid);
         Boolean is = meetingPartService.isCreator(useruuid,part);
         if(!is){
             return ResponseEntity.ok(ApiResponse.error(403, "您不是会议创建者，无权访问"));

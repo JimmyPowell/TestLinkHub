@@ -2,6 +2,9 @@ package tech.cspioneer.backend.mapper;
 
 import org.apache.ibatis.annotations.*;
 import tech.cspioneer.backend.entity.Meeting;
+import tech.cspioneer.backend.entity.MeetingVersion;
+
+import java.util.List;
 
 
 @Mapper
@@ -48,7 +51,12 @@ public interface MeetingMapper {
     SELECT * FROM meeting
     WHERE uuid = #{meetingUuid}
     AND is_deleted = 0
-    LIMIT 1
 """)
     Meeting findByUuid(String meetingUuid);
+
+    //获取所有状态为已发布的会议
+    @Select("SELECT * FROM meeting WHERE status = 'published' AND is_deleted = 0")
+    List<Meeting> findPublishedMeetings();
+
+
 }

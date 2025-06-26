@@ -2,6 +2,7 @@ package tech.cspioneer.backend.controller.admin;
 
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,14 +22,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/root/meeting")
 public class RootMeetingController {
-    //会议审核-/api/root/meeting/review
+
+
+    //会议审核-/api/root/meeting/review管理员审核创建会议
     @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/review")
     public ResponseEntity<ApiResponse<Void>> reviewMeeting(
             @RequestBody MeetingReviewRequest res,
             @AuthenticationPrincipal String useruuid){
         meetingService.reviewMeetingCreate(res, useruuid);
-
         return ResponseEntity.ok(new ApiResponse<>());
     }
 
@@ -45,7 +47,7 @@ public class RootMeetingController {
     }
 
 
-    //会议详情-/api/root/meeting/meeting_version_uuid/{meeting_uuid}
+    //会议详情-/api/root/meeting/meeting_version_uuid
     @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/")
     public ResponseEntity<ApiResponse<MeetingVersion>> getMeetingDetails(
@@ -58,7 +60,10 @@ public class RootMeetingController {
 
 
 
+
+    @Autowired
     private MeetingService meetingService;
+    @Autowired
     private MeetingPartService meetingPartService;
 
     // 创建会议（仅公司身份可访问）

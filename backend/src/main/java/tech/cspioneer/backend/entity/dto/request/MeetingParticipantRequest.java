@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class MeetingParticipantRequest {
     private String meetingUuid;
-    private String join_reason;
+    private String joinReason;
 
 
 }

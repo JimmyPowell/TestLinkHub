@@ -2,6 +2,7 @@ package tech.cspioneer.backend.controller;
 
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,7 +20,9 @@ import java.util.List;
 @RequestMapping("/api/user/meeting")
 public class MeetingController {
 
+    @Autowired
     private MeetingService meetingService;
+    @Autowired
     private MeetingPartService meetingPartService;
 
 
@@ -27,10 +30,11 @@ public class MeetingController {
     @PreAuthorize("hasAuthority('USER')")
     @GetMapping("/part")
     public ResponseEntity<ApiResponse<MeetingParticipant>> getMeetingPartDetail(
-            @RequestParam String partUuid,
+            @RequestParam String part_uuid,
             @AuthenticationPrincipal String useruuid
     ) {
-        MeetingParticipant part = meetingPartService.findMeetingPartByUuid(partUuid);
+        //根据申请uuid找参会详情
+        MeetingParticipant part = meetingPartService.findMeetingPartByUuid(part_uuid);
         return ResponseEntity.ok(new ApiResponse<>(200,"获取参会详细信息成功",part));
     }
 
@@ -38,8 +42,8 @@ public class MeetingController {
     @PreAuthorize("hasAuthority('USER')")
     @GetMapping("/part/list/")
     public ResponseEntity<ApiResponse<List<MeetingParticipant>>> getUserPartList(
-            @PathVariable int page,
-            @PathVariable int size,
+            @RequestParam int page,
+            @RequestParam int size,
             @AuthenticationPrincipal String useruuid) {
         List<MeetingParticipant> parts = meetingPartService.getMeetingPartsByUser(useruuid, page, size);
         return ResponseEntity.ok(new ApiResponse<>(200,"获取参会申请列表成功",parts));
@@ -50,22 +54,23 @@ public class MeetingController {
     @PreAuthorize("hasAuthority('USER')")
     @GetMapping("/list/")
     public ResponseEntity<ApiResponse<List<MeetingVersion>>> browseMeetings(
-            @PathVariable int page,
-            @PathVariable int size,
+            @RequestParam int page,
+            @RequestParam int size,
             @AuthenticationPrincipal String useruuid) {
-        List<MeetingVersion> meetings = meetingService.getPublishedMeetings(page, size);  // 你可以自定义这个方法
+        List<MeetingVersion> meetings = meetingService.getPublishedMeetings(page, size);
         return ResponseEntity.ok(new ApiResponse<>(200,"浏览会议列表获取成功",meetings));
     }
 
 
-    //会议详情-/api/user/meeting/meeting_uuid/{meeting_uuid}
+
+    //会议详情-/api/user/meeting/{meeting_uuid}
     @PreAuthorize("hasAuthority('USER')")
     @GetMapping("/")
     public ResponseEntity<ApiResponse<MeetingVersion>> getMeetingDetails(
-            @RequestParam String meetingversionuuid,
+            @RequestParam String meeting_uuid,
             @AuthenticationPrincipal String useruuid
     ){
-        MeetingVersion details = meetingService.getMeetingVersionDetails(meetingversionuuid);
+        MeetingVersion details = meetingService.getMeetingVersionDetails(meeting_uuid);
         return ResponseEntity.ok(ApiResponse.success(200, "获取会议详情成功", details));
     }
 

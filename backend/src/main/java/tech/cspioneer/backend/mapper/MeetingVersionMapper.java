@@ -50,13 +50,27 @@ public interface MeetingVersionMapper {
     @Update("UPDATE meeting_version SET status = #{status} WHERE id = #{id}")
     void updateStatus(@Param("id") Long id, @Param("status") String status);
 
-    @Select("""
-    SELECT * FROM meeting_version
-    WHERE status = 'pending_review'
-    ORDER BY created_at DESC
-    LIMIT #{limit} OFFSET #{offset}
-""")
-    List<MeetingVersion> findPendingList(@Param("offset") int offset, @Param("limit") int limit);
+
+
+
+    //根据传入的id找出对应的version表
+    @Select({
+            "<script>",
+            "SELECT * FROM meeting_version WHERE id IN",
+            "<foreach item='id' index='index' collection='ids' open='(' separator=',' close=')'>",
+            "#{id}",
+            "</foreach>",
+            "AND is_deleted = 0",
+            "</script>"
+    })
+    List<MeetingVersion> findVersionsByIds(@Param("ids") List<Long> ids);
+
+    @Select("SELECT * FROM meeting_version WHERE id = #{id} AND is_deleted = 0")
+    MeetingVersion findById(@Param("id") Long id);
+
+    @Select("SELECT * FROM meeting_version WHERE status = 'pending_review' AND is_deleted = 0 ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
+    List<MeetingVersion> findPendingList(@Param("offset") int offset, @Param("size") int size);
+
 
 
 }
