@@ -24,19 +24,19 @@ import java.util.List;
 public class RootMeetingController {
 
 
-    //会议审核-/api/root/meeting/review管理员审核创建会议
+    //会议审核-/api/root/meeting/review管理员审核创建会议+
     @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/review")
     public ResponseEntity<ApiResponse<Void>> reviewMeeting(
             @RequestBody MeetingReviewRequest res,
             @AuthenticationPrincipal String useruuid){
         meetingService.reviewMeetingCreate(res, useruuid);
-        return ResponseEntity.ok(new ApiResponse<>());
+        return ResponseEntity.ok(new ApiResponse<>(200,"审核完成",null));
     }
 
-    //审核会议浏览-/api/root/reviewlist/{page}{size}
+    //审核会议浏览-/api/root/reviewlist/{page}{size}+
     @PreAuthorize("hasAuthority('ADMIN')")
-    @PostMapping("/reviewlist")
+    @GetMapping("/reviewlist")
     public ResponseEntity<ApiResponse<List<MeetingVersion>>> getMeetingReviewList(
             @RequestParam int page,
             @RequestParam int size,
@@ -47,15 +47,15 @@ public class RootMeetingController {
     }
 
 
-    //会议详情-/api/root/meeting/meeting_version_uuid
+    //会议详情-/api/root/meeting/meeting_version_uuid(这是审核的时候用的，所以前端应该是会议版本列表)+
     @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/")
     public ResponseEntity<ApiResponse<MeetingVersion>> getMeetingDetails(
-            @RequestParam String meetingversionuuid,
+            @RequestParam String meeting_version_uuid,
             @AuthenticationPrincipal String useruuid
     ){
-        MeetingVersion details = meetingService.getMeetingVersionDetails(meetingversionuuid);
-        return ResponseEntity.ok(ApiResponse.success(200, "获取会议详情成功", details));
+        MeetingVersion details = meetingService.getMeetingVersionDetails(meeting_version_uuid);
+        return ResponseEntity.ok(ApiResponse.success(200, "获取会议版本详情成功", details));
     }
 
 
@@ -92,7 +92,7 @@ public class RootMeetingController {
     }
 
     // 删除会议（仅公司身份可访问）
-    @PreAuthorize("hasAuthority('ADMIN)")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/delete")
     public ResponseEntity<ApiResponse<Void>> deleteMeeting(
             @RequestBody String meetingUuid,

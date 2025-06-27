@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 public class MeetingParticipant {
     private Long id;
+    private String uuid;
     private Long meetingId;
     private Long userId;
     private String joinReason;

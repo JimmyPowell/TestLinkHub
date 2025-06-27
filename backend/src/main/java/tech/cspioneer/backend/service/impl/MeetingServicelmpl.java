@@ -33,6 +33,9 @@ public class MeetingServicelmpl implements MeetingService {
     private MeetingVersionMapper meetingVersionMapper;
     @Autowired
     private AuditHistoryMapper auditHistoryMapper;
+
+    @Autowired
+    private UserMapper userMapper;
     //偷过来用一下
     private Company getCompanyByUuid(String uuid) {
         Company company = companyMapper.findByUuid(uuid);
@@ -151,33 +154,47 @@ public class MeetingServicelmpl implements MeetingService {
 
     @Override
     public void reviewMeetingCreate(MeetingReviewRequest req, String useruuid) {
+        // 1. 校验版本是否存在
         MeetingVersion version = meetingVersionMapper.findByUuid(req.getMeetingVersionUuid());
         if (version == null) {
             throw new ResourceNotFoundException("MeetingVersion", "uuid", req.getMeetingVersionUuid());
         }
 
-        // 写入审核历史记录
+        // 2. 校验审核人是否存在
+        User user = userMapper.findByUuid(useruuid);
+        if (user == null) {
+            throw new ResourceNotFoundException("User", "uuid", useruuid);
+        }
+
+        // 3. 获取审核状态，统一小写处理，确保兼容 ENUM 定义
+        String auditStatus = req.getAuditStatus().toLowerCase();
+        if (!auditStatus.equals("approved") && !auditStatus.equals("rejected")) {
+            throw new IllegalArgumentException("Invalid audit status: " + auditStatus);
+        }
+
+        // 4. 写入审核历史记录
         auditHistoryMapper.insertHistory(
                 version.getId(),
-                Long.parseLong(useruuid),
-                req.getAuditStatus(),
+                user.getId(),
+                auditStatus,
                 req.getComments(),
                 LocalDateTime.now()
         );
 
-         //更新版本状态
-        String status = req.getAuditStatus();
-        version.setStatus(status);
-        meetingVersionMapper.updateStatus(version.getId(), status);
+        // 5. 更新版本状态（与数据库 ENUM 保持一致）
+        String versionStatus = auditStatus.equals("approved") ? "active" : "rejected";
+        version.setStatus(versionStatus);
+        meetingVersionMapper.updateStatus(version.getId(), versionStatus);
 
-         //如果通过审核，更新会议主表的 current_version_id
-        if ("approved".equals(status)) {
+        // 6. 如果通过审核，更新主表 current_version_id & 状态
+        if (auditStatus.equals("approved")) {
             Meeting meeting = meetingMapper.findById(version.getMeetingId());
             meeting.setCurrentVersionId(version.getId());
-            meeting.setStatus("active"); // or “approved”
+            meeting.setStatus("published"); // 对应 meeting 表 ENUM
             meetingMapper.update(meeting);
         }
     }
+
 
     @Override
     public List<MeetingVersion> getPendingReviewList(int page, int size) {
@@ -186,18 +203,35 @@ public class MeetingServicelmpl implements MeetingService {
     }
 
     @Override
-    public MeetingVersion getMeetingVersionDetails(String meetingUuid) {
-        System.out.println("meetingUuid<UNK>"+meetingUuid);
-        //1.根据meeting_uuid找到会议
+    public MeetingVersion getMeetingVersionDetails(String meetingVersionUuid) {
+        System.out.println("meetingVersionUuid<UNK>"+meetingVersionUuid);
+
+        return meetingVersionMapper.findByUuid(meetingVersionUuid);
+    }
+
+    @Override
+    public MeetingVersion getMeetingDetails(String meetingUuid) {
+        // 1. 根据会议主表 UUID 查会议主表对象
         Meeting meeting = meetingMapper.findByUuid(meetingUuid);
-        System.out.println("meeting"+meeting.toString());
         if (meeting == null) {
             throw new ResourceNotFoundException("Meeting", "uuid", meetingUuid);
         }
-        Long id = meeting.getCurrentVersionId();
-        //2.会议对应的版本
-        return meetingVersionMapper.findById(id);
+
+        // 2. 拿当前生效版本ID
+        Long currentVersionId = meeting.getCurrentVersionId();
+        if (currentVersionId == null) {
+            throw new ResourceNotFoundException("MeetingVersion", "meeting_id", meeting.getId());
+        }
+
+        // 3. 根据版本ID查找版本详情
+        MeetingVersion version = meetingVersionMapper.findById(currentVersionId);
+        if (version == null) {
+            throw new ResourceNotFoundException("MeetingVersion", "id", currentVersionId.toString());
+        }
+
+        return version;
     }
+
 
 
     @Override
