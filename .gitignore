@@ -22,3 +22,6 @@ yarn-error.log*
 
 # System files
 .DS_Store
+
+# Config files with secrets
+/backend/src/main/resources/application.properties
