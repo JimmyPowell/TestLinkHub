@@ -1,20 +1,23 @@
 package tech.cspioneer.backend.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
- * Minimal JWT encoder/decoder using HMAC-SHA256, adapted for Spring Boot.
+ * JWT encoder/decoder using HMAC-SHA256, adapted for Spring Boot.
  */
 @Component
 public final class JwtUtils {
@@ -28,6 +31,8 @@ public final class JwtUtils {
 
     @Value("${jwt.refresh-token-expiration-ms}")
     private long refreshTokenExpirationMs;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Generate a JWT access token using configured expiration time.
@@ -71,24 +76,32 @@ public final class JwtUtils {
      * Encode payload to a JWT string.
      */
     public String encode(Map<String, Object> payload) {
-        String headerJson = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
-        String payloadJson = toJson(payload);
-        String headerBase = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
-        String payloadBase = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
-        String signature = sign(headerBase + "." + payloadBase);
-        return headerBase + "." + payloadBase + "." + signature;
+        try {
+            String headerJson = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
+            String payloadJson = objectMapper.writeValueAsString(payload);
+            String headerBase = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
+            String payloadBase = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
+            String signature = sign(headerBase + "." + payloadBase);
+            return headerBase + "." + payloadBase + "." + signature;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Unable to serialize payload to JSON", e);
+        }
     }
 
     /**
      * Decode a JWT string into a payload map.
      */
     public Map<String, Object> decode(String token) {
-        String[] parts = token.split("\\.");
-        if (parts.length != 3) {
-            throw new IllegalArgumentException("Invalid token");
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length != 3) {
+                throw new IllegalArgumentException("Invalid token");
+            }
+            String payloadJson = new String(base64UrlDecode(parts[1]), StandardCharsets.UTF_8);
+            return objectMapper.readValue(payloadJson, new TypeReference<Map<String, Object>>() {});
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to deserialize payload from JSON", e);
         }
-        String payloadJson = new String(base64UrlDecode(parts[1]), StandardCharsets.UTF_8);
-        return parseJson(payloadJson);
     }
 
     private String sign(String data) {
@@ -100,40 +113,6 @@ public final class JwtUtils {
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException("unable to sign", e);
         }
-    }
-
-    private String toJson(Map<String, Object> payload) {
-        StringBuilder json = new StringBuilder("{");
-        for (Map.Entry<String, Object> entry : payload.entrySet()) {
-            json.append("\"").append(entry.getKey()).append("\":");
-            Object value = entry.getValue();
-            if (value instanceof String) {
-                json.append("\"").append(value).append("\",");
-            } else {
-                json.append(value).append(",");
-            }
-        }
-        if (json.length() > 1) {
-            json.setLength(json.length() - 1);
-        }
-        json.append("}");
-        return json.toString();
-    }
-
-    private Map<String, Object> parseJson(String json) {
-        Map<String, Object> map = new HashMap<>();
-        String[] pairs = json.substring(1, json.length() - 1).split(",");
-        for (String pair : pairs) {
-            String[] keyValue = pair.split(":", 2);
-            String key = keyValue[0].replace("\"", "").trim();
-            String valueStr = keyValue[1].trim();
-            if (valueStr.startsWith("\"")) {
-                map.put(key, valueStr.substring(1, valueStr.length() - 1));
-            } else {
-                map.put(key, Long.parseLong(valueStr));
-            }
-        }
-        return map;
     }
 
     private String base64UrlEncode(byte[] bytes) {

@@ -182,13 +182,26 @@ public class AuthController {
     }
 
     //退出
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestBody RefreshTokenRequest request) {
+        authService.logout(request);
+        return ResponseEntity.ok(ApiResponse.success(200, "Logged out successfully.", null));
+    }
 
     //忘记密码
 
     //刷新令牌
-
-
-
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(@RequestBody RefreshTokenRequest request) {
+        try {
+            LoginResponse loginResponse = authService.refreshToken(request);
+            return ResponseEntity.ok(ApiResponse.success(200, "Token refreshed successfully.", loginResponse));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "An unexpected error occurred during token refresh."));
+        }
+    }
 
     //修改密码
 

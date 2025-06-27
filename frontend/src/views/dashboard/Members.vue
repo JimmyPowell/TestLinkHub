@@ -1,16 +1,16 @@
 <template>
   <div class="members-management">
     <div class="header-info">
-      <p>您的身份是xxxxxx的管理者，可以管理本公司内的成员信息。</p>
+      <p>您好！作为 {{ authStore.userName }} 的管理者，您可以管理本公司内的成员信息。</p>
     </div>
 
     <div class="filters">
-      <el-input v-model="filters.uuid" placeholder="用户UUID" class="filter-item"></el-input>
-      <el-input v-model="filters.username" placeholder="用户名" class="filter-item"></el-input>
-      <el-select v-model="filters.status" placeholder="用户状态" class="filter-item">
-        <el-option label="全部" value=""></el-option>
-        <el-option label="正常" value="1"></el-option>
-        <el-option label="禁用" value="0"></el-option>
+      <el-input v-model="searchForm.uuid" placeholder="用户UUID" class="filter-item"></el-input>
+      <el-input v-model="searchForm.username" placeholder="用户名" class="filter-item"></el-input>
+      <el-input v-model="searchForm.phoneNumber" placeholder="手机号" class="filter-item"></el-input>
+      <el-select v-model="searchForm.status" placeholder="用户状态" class="filter-item" clearable>
+        <el-option label="正常" value="ACTIVE"></el-option>
+        <el-option label="禁用" value="INACTIVE"></el-option>
       </el-select>
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <el-button @click="handleReset">重置</el-button>
@@ -18,8 +18,8 @@
       <el-button type="warning" @click="handleBatchOperation">批量操作</el-button>
     </div>
 
-    <el-table :data="users" style="width: 100%" class="user-table">
-      <el-table-column prop="uuid" label="UUID">
+    <el-table :data="members" style="width: 100%" class="user-table">
+      <el-table-column prop="uuid" label="UUID" min-width="150">
         <template #default="scope">
           <el-tooltip :content="scope.row.uuid" placement="top">
             <span @click="copyToClipboard(scope.row.uuid)" style="cursor: pointer;">
@@ -28,7 +28,7 @@
           </el-tooltip>
         </template>
       </el-table-column>
-      <el-table-column prop="username" label="用户名"></el-table-column>
+      <el-table-column prop="name" label="用户名"></el-table-column>
       <el-table-column prop="email" label="邮箱地址" min-width="180">
         <template #default="scope">
           <el-tooltip :content="scope.row.email" placement="top">
@@ -36,17 +36,20 @@
           </el-tooltip>
         </template>
       </el-table-column>
-      <el-table-column prop="phone" label="手机号"></el-table-column>
+      <el-table-column prop="phone_number" label="手机号"></el-table-column>
       <el-table-column prop="status" label="状态">
         <template #default="scope">
-          <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
-            {{ scope.row.status === 1 ? '正常' : '禁用' }}
+          <el-tag :type="scope.row.status === 'ACTIVE' ? 'success' : 'danger'">
+            {{ scope.row.status === 'ACTIVE' ? '正常' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="registrationTime" label="注册时间"></el-table-column>
+      <el-table-column prop="updated_at" label="更新时间">
+        <template #default="scope">
+          <span>{{ formatDateTime(scope.row.updated_at) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="description" label="个人描述"></el-table-column>
-      <el-table-column prop="registrationLocation" label="注册地点"></el-table-column>
       <el-table-column label="操作" width="200">
         <template #default="scope">
           <el-button size="small" @click="handleView(scope.row)">查看</el-button>
@@ -55,83 +58,173 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <div class="pagination-container">
+      <el-pagination
+        v-if="pagination.totalItems > 0"
+        background
+        layout="prev, pager, next, total"
+        :total="pagination.totalItems"
+        :current-page="pagination.currentPage"
+        :page-size="pagination.pageSize"
+        @current-change="fetchMembersList"
+      />
+    </div>
+
+    <UserDetailDrawer
+      :user="selectedUser"
+      :visible="isDetailDrawerVisible"
+      @update:visible="isDetailDrawerVisible = $event"
+    />
+
+    <UserFormDrawer
+      :visible="isFormDrawerVisible"
+      :is-edit-mode="isEditMode"
+      :user-data="selectedUser"
+      @update:visible="isFormDrawerVisible = $event"
+      @submit="handleFormSubmit"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
-import { ElInput, ElSelect, ElOption, ElButton, ElTable, ElTableColumn, ElTag, ElTooltip, ElMessage } from 'element-plus';
+import { reactive, onMounted, computed, ref } from 'vue';
+import { useAuthStore } from '../../store/auth';
+import userService from '../../services/userService';
+import UserDetailDrawer from '../../components/dashboard/UserDetailDrawer.vue';
+import UserFormDrawer from '../../components/dashboard/UserFormDrawer.vue';
+import { formatDateTime } from '../../utils/format';
+import { ElInput, ElSelect, ElOption, ElButton, ElTable, ElTableColumn, ElTag, ElTooltip, ElMessage, ElPagination, ElMessageBox } from 'element-plus';
 
-const filters = reactive({
+const authStore = useAuthStore();
+
+const isDetailDrawerVisible = ref(false);
+const isFormDrawerVisible = ref(false);
+const selectedUser = ref(null);
+const isEditMode = ref(false);
+
+const searchForm = reactive({
   uuid: '',
   username: '',
   status: '',
+  phoneNumber: '',
 });
 
-const users = ref([
-  // 示例数据
-  {
-    uuid: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
-    username: '张三',
-    email: 'zhangsan@example.com',
-    phone: '13800138000',
-    status: 1,
-    registrationTime: '2023-01-15 10:30:00',
-    description: '一个活跃的用户',
-    registrationLocation: '北京',
-  },
-  {
-    uuid: 'b2c3d4e5-f6a7-8901-2345-67890abcdef0',
-    username: '李四',
-    email: 'lisi@example.com',
-    phone: '13900139000',
-    status: 0,
-    registrationTime: '2023-02-20 14:00:00',
-    description: '因违规被禁用',
-    registrationLocation: '上海',
-  },
-]);
+const members = computed(() => authStore.members);
+const pagination = computed(() => authStore.pagination);
+
+const fetchMembersList = (page = 1) => {
+  // el-pagination's current-page is 1-based, our API is 0-based.
+  const apiPage = page - 1;
+  const { uuid, username, status, phoneNumber } = searchForm;
+  const size = pagination.value.pageSize;
+  authStore.fetchMembers({ page: apiPage, size, uuid, username, status, phoneNumber });
+};
+
+onMounted(() => {
+  // Fetch the first page on component mount
+  fetchMembersList(1);
+});
 
 const handleSearch = () => {
-  console.log('Searching with filters:', filters);
-  // 在这里实现搜索逻辑
+  // When searching, always go back to the first page
+  fetchMembersList(1);
 };
 
 const handleReset = () => {
-  filters.uuid = '';
-  filters.username = '';
-  filters.status = '';
-  console.log('Filters reset');
-  // 在这里实现重置逻辑
+  searchForm.uuid = '';
+  searchForm.username = '';
+  searchForm.status = '';
+  searchForm.phoneNumber = '';
+  fetchMembersList(1);
 };
 
 const handleCreate = () => {
-  console.log('Create new user');
-  // 在这里实现新增逻辑
+  isEditMode.value = false;
+  selectedUser.value = null; // Ensure form is empty
+  isFormDrawerVisible.value = true;
 };
 
 const handleBatchOperation = () => {
   console.log('Batch operation');
-  // 在这里实现批量操作逻辑
 };
 
-const handleView = (user) => {
+const handleView = async (user) => {
   console.log('Viewing user:', user);
-  // 在这里实现查看逻辑
+  selectedUser.value = null; // Reset first to show loading state
+  isDetailDrawerVisible.value = true;
+  try {
+    const response = await userService.getUserDetails(user.uuid);
+    selectedUser.value = response.data.data;
+  } catch (error) {
+    console.error('Failed to fetch user details:', error);
+    ElMessage.error('获取用户详情失败');
+    isDetailDrawerVisible.value = false;
+  }
+};
+
+const handleFormSubmit = async (formData) => {
+  try {
+    // The form data is in camelCase, the service will convert it to snake_case
+    if (isEditMode.value) {
+      await userService.updateCompanyUser(selectedUser.value.uuid, formData);
+      ElMessage.success('用户更新成功');
+    } else {
+      await userService.createCompanyUser(formData);
+      ElMessage.success('用户创建成功');
+    }
+    isFormDrawerVisible.value = false;
+    fetchMembersList(pagination.value.currentPage); // Refresh the current page
+  } catch (error) {
+    console.error('Failed to submit user form:', error);
+    ElMessage.error(error.response?.data?.message || '操作失败');
+  }
 };
 
 const handleEdit = (user) => {
-  console.log('Editing user:', user);
-  // 在这里实现编辑逻辑
+  isEditMode.value = true;
+  // Use the user data directly from the table row, which includes company_id
+  // Note: We need to convert snake_case from the list to camelCase for the form
+  const camelCaseUser = {
+    ...user,
+    phoneNumber: user.phone_number,
+    avatarUrl: user.avatar_url,
+    companyId: user.company_id,
+    postCount: user.post_count,
+    lessonCount: user.lesson_count,
+    meetingCount: user.meeting_count,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  };
+  selectedUser.value = camelCaseUser;
+  isFormDrawerVisible.value = true;
 };
 
 const handleRemove = (user) => {
-  console.log('Removing user:', user);
-  // 在这里实现移除逻辑
+  ElMessageBox.confirm(
+    `确定要将用户 "${user.name}" 从组织中移出吗？此操作不可逆。`,
+    '警告',
+    {
+      confirmButtonText: '确定移出',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(async () => {
+    try {
+      await userService.removeUserFromCompany(user.uuid);
+      ElMessage.success('用户已成功移出');
+      fetchMembersList(pagination.value.currentPage); // Refresh the list
+    } catch (error) {
+      console.error('Failed to remove user:', error);
+      ElMessage.error(error.response?.data?.message || '移出用户失败');
+    }
+  }).catch(() => {
+    ElMessage.info('操作已取消');
+  });
 };
 
 const truncateUUID = (uuid) => {
-  if (uuid.length > 13) {
+  if (uuid && uuid.length > 13) {
     return uuid.substring(0, 8) + '...' + uuid.substring(uuid.length - 4);
   }
   return uuid;
@@ -153,7 +246,7 @@ const copyToClipboard = (text) => {
 }
 
 .header-info {
-  margin-bottom: 10px; /* 减少下边距，使文本上移 */
+  margin-bottom: 10px;
 }
 
 .filters {
@@ -174,5 +267,11 @@ const copyToClipboard = (text) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 </style>

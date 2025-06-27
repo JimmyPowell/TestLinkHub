@@ -1,9 +1,7 @@
 package tech.cspioneer.backend.service;
 
 import tech.cspioneer.backend.entity.dto.request.EnterpriseRegisterRequest;
-import tech.cspioneer.backend.entity.dto.request.IndividualRegisterRequest;
-import tech.cspioneer.backend.entity.dto.request.UserLoginRequest;
-import tech.cspioneer.backend.entity.dto.request.CompanyLoginrequest;
+import tech.cspioneer.backend.entity.dto.request.*;
 import tech.cspioneer.backend.entity.dto.response.LoginResponse;
 import tech.cspioneer.backend.exception.VerificationCodeException;
 
@@ -42,4 +40,8 @@ public interface AuthService {
     LoginResponse userLogin(UserLoginRequest loginRequest);
 
     LoginResponse companyLogin(CompanyLoginrequest loginRequest);
+
+    LoginResponse refreshToken(RefreshTokenRequest request);
+
+    void logout(RefreshTokenRequest request);
 }

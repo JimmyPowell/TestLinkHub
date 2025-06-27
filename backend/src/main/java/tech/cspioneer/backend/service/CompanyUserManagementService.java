@@ -4,10 +4,10 @@ import tech.cspioneer.backend.entity.dto.request.UserCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.UserUpdateRequest;
 import tech.cspioneer.backend.entity.dto.response.UserResponse;
 import tech.cspioneer.backend.model.response.PagedResponse;
-
+import tech.cspioneer.backend.entity.dto.response.UserDetailResponse;
 public interface CompanyUserManagementService {
 
-    PagedResponse<UserResponse> getCompanyUsers(int page, int size, String currentUserUuid);
+    PagedResponse<UserResponse> getCompanyUsers(int page, int size, String uuid, String username, String status, String phoneNumber, String currentUserUuid);
 
     UserResponse createCompanyUser(UserCreateRequest userCreateRequest, String currentUserUuid);
 
@@ -16,4 +16,6 @@ public interface CompanyUserManagementService {
     void deleteCompanyUser(String uuid, String currentUserUuid);
 
     void removeUserFromCompany(String uuid, String currentUserUuid);
+
+    UserDetailResponse getUserDetails(String uuid, String currentUserUuid);
 }
