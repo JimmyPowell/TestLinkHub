@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阿里云OSS图片上传</title>
+    <link rel="stylesheet" href="upload.css">
+</head>
+<body>
+    <div class="container">
+        <h1>阿里云OSS图片上传</h1>
+        
+        <div class="upload-container">
+            <div class="upload-area" id="dropZone">
+                <input type="file" id="fileInput" accept="image/*" multiple>
+                <div class="upload-text">
+                    <i class="icon-upload"></i>
+                    <p>点击选择或拖拽图片到此处</p>
+                </div>
+            </div>
+            
+            <div class="preview-container" id="previewContainer">
+                <!-- 上传预览区域 -->
+            </div>
+            
+            <div class="button-container">
+                <button class="btn upload-btn" id="uploadBtn" disabled>开始上传</button>
+                <button class="btn clear-btn" id="clearBtn">清空</button>
+            </div>
+        </div>
+        
+        <div class="result-container">
+            <h2>上传结果</h2>
+            <div id="resultList" class="result-list">
+                <!-- 上传结果将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入阿里云OSS SDK -->
+    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
+    <!-- 引入上传脚本 -->
+    <script src="upload.js"></script>
+</body>
+</html> 

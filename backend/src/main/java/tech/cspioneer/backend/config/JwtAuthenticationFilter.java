@@ -30,6 +30,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
+        if (request.getServletPath().contains("/api/auth/refresh")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userUuid;
@@ -48,7 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // Validate token expiration
             Long exp = (Long) payload.get("exp");
-            if (exp == null || exp * 1000 < System.currentTimeMillis()) { // exp is in seconds, System.currentTimeMillis() is in milliseconds
+            if (exp == null || exp < System.currentTimeMillis()) { // exp is in milliseconds
                 // Token is expired, proceed without setting authentication
                 filterChain.doFilter(request, response);
                 return;

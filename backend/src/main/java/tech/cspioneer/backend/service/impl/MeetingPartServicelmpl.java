@@ -15,6 +15,7 @@ import tech.cspioneer.backend.service.MeetingPartService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 
 @Service
@@ -85,8 +86,9 @@ public class MeetingPartServicelmpl implements MeetingPartService {
         if (size <= 0) size = 10;
 
         int offset = (page - 1) * size;
-
-        return meetingPartMapper.findPartsByUser(useruuid, offset, size);
+        User user = userMapper.findByUuid(useruuid);
+        Long userId = user.getId();
+        return meetingPartMapper.findPartsByUser(userId, offset, size);
     }
 
     @Override
@@ -94,10 +96,6 @@ public class MeetingPartServicelmpl implements MeetingPartService {
         if (request == null || request.getMeetingUuid() == null || request.getMeetingUuid().trim().isEmpty()) {
             throw new IllegalArgumentException("会议 UUID 不能为空");
         }
-        if (useruuid == null || useruuid.trim().isEmpty()) {
-            throw new IllegalArgumentException("用户身份无效");
-        }
-
         // 1. 查找会议 ID
         Meeting meeting = meetingMapper.findByUuid(request.getMeetingUuid());
         Long meetingId = meeting.getId();
@@ -115,13 +113,15 @@ public class MeetingPartServicelmpl implements MeetingPartService {
         // 3. 插入记录
 
         MeetingParticipant participant = MeetingParticipant.builder()
+                .uuid(UUID.randomUUID().toString())   // 生成唯一uuid
                 .meetingId(meetingId)
                 .userId(userId)
                 .joinReason(request.getJoinReason())
-                .status("PENDING")
+                .status("pending")
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
+
         System.out.println("插入参会申请详情"+participant.toString());
 
         meetingPartMapper.insertParticipant(participant);

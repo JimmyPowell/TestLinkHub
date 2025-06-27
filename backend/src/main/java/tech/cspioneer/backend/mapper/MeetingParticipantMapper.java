@@ -67,11 +67,8 @@ public interface MeetingParticipantMapper {
 """)
     MeetingParticipant findPartByUuid(@Param("partUuid") String partUuid);
 
-    @Select("SELECT * FROM meeting_participant " +
-            "WHERE user_uuid = #{useruuid} " +
-            "ORDER BY apply_time DESC " +
-            "LIMIT #{size} OFFSET #{offset}")
-    List<MeetingParticipant> findPartsByUser(@Param("useruuid") String useruuid,
+    @Select("SELECT * FROM meeting_participant WHERE user_id = #{userId} ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
+    List<MeetingParticipant> findPartsByUser(@Param("userId") Long userId,
                                              @Param("offset") int offset,
                                              @Param("size") int size);
 
@@ -79,8 +76,9 @@ public interface MeetingParticipantMapper {
     @Select("SELECT * FROM meeting_participant WHERE meeting_id = #{meetingId} AND user_uuid = #{useruuid} LIMIT 1")
     MeetingParticipant findByMeetingIdAndUser(@Param("meetingId") Long meetingId,
                                               @Param("useruuid") String useruuid);
-
-    @Insert("INSERT INTO meeting_participant (meeting_id, user_uuid, reason, apply_time, status) " +
-            "VALUES (#{meetingId}, #{userUuid}, #{reason}, #{applyTime}, #{status})")
+    @Insert("INSERT INTO meeting_participant (uuid, meeting_id, user_id, join_reason, created_at, status) " +
+            "VALUES (#{uuid}, #{meetingId}, #{userId}, #{joinReason}, #{createdAt}, #{status})")
     void insertParticipant(MeetingParticipant participant);
+
+
 }

@@ -28,4 +28,6 @@ public interface MeetingService {
     MeetingVersion getMeetingVersionDetails(String meetingversionuuid);
 
     List<MeetingVersion> getPublishedMeetings(int page, int size);
+
+    MeetingVersion getMeetingDetails(String meetingUuid);
 }

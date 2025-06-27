@@ -24,8 +24,9 @@ import tech.cspioneer.backend.utils.CodeGeneratorUtil;
 import tech.cspioneer.backend.utils.JwtUtils;
 import tech.cspioneer.backend.utils.RedisUtils;
 import tech.cspioneer.backend.utils.SMTPUtils;
-
+import tech.cspioneer.backend.entity.dto.request.RefreshTokenRequest;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -41,6 +42,10 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtils jwtUtils;
 
     private static final String VERIFICATION_CODE_KEY_PREFIX = "verify:code:";
+    private static final String REFRESH_TOKEN_USER_KEY_PREFIX = "refreshtoken:user:";
+    private static final String REFRESH_TOKEN_COMPANY_KEY_PREFIX = "refreshtoken:company:";
+    private static final String BLACKLIST_REFRESH_TOKEN_PREFIX = "blacklist:refreshtoken:";
+    private static final int REFRESH_TOKEN_EXPIRATION_DAYS = 7;
     private static final String VERIFIED_USER_KEY_PREFIX = "verified:user:";
     private static final long VERIFICATION_CODE_EXPIRATION_MINUTES = 5;
 
@@ -386,6 +391,13 @@ public class AuthServiceImpl implements AuthService {
         // Refresh token 版本可以存储在数据库中，用于强制下线，这里暂时用 1
         String refreshToken = jwtUtils.generateRefreshToken(user.getUuid(), user.getRole().name(), 1);
 
+        // 将 Refresh Token 存入 Redis
+        String redisKey = REFRESH_TOKEN_USER_KEY_PREFIX + user.getUuid();
+        int expirationInSeconds = REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60;
+        RedisUtils.set(redisKey, refreshToken, expirationInSeconds, 0);
+        log.info("Stored refresh token for user {} in Redis with key: {}", user.getEmail(), redisKey);
+
+
         log.info("Login successful for user: {}", user.getEmail());
         return new LoginResponse(accessToken, refreshToken);
     }
@@ -418,9 +430,128 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtUtils.generateAccessToken(company.getUuid(), "COMPANY");
         String refreshToken = jwtUtils.generateRefreshToken(company.getUuid(), "COMPANY", 1);
 
+        // 将 Refresh Token 存入 Redis
+        String redisKey = REFRESH_TOKEN_COMPANY_KEY_PREFIX + company.getUuid();
+        int expirationInSeconds = REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60;
+        RedisUtils.set(redisKey, refreshToken, expirationInSeconds, 0);
+        log.info("Stored refresh token for company {} in Redis with key: {}", company.getEmail(), redisKey);
+
+
         log.info("Login successful for company: {}", company.getEmail());
         System.out.println("accessToken:"+accessToken);
         System.out.println("refreshToken:"+refreshToken);
         return new LoginResponse(accessToken, refreshToken);
+    }
+
+    @Override
+    public LoginResponse refreshToken(RefreshTokenRequest request) {
+        String refreshToken = request.getRefreshToken();
+        log.info("Attempting to refresh token...");
+
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            log.warn("Refresh token failed: Token is missing from the request.");
+            throw new BadCredentialsException("Refresh token is missing.");
+        }
+        log.info("Step 1: Basic validation passed. Token is present.");
+
+        // 1. 解码并验证 Token
+        Map<String, Object> payload;
+        try {
+            payload = jwtUtils.decode(refreshToken);
+            log.info("Step 2: Token decoding successful.");
+        } catch (Exception e) {
+            log.warn("Refresh token failed: Could not decode token.", e);
+            throw new BadCredentialsException("Invalid refresh token.");
+        }
+
+        Long exp = (Long) payload.get("exp");
+        if (exp == null || exp * 1000 < System.currentTimeMillis()) {
+            log.warn("Refresh token failed: Token has expired. Expiration time: {}", exp != null ? new java.util.Date(exp * 1000) : "null");
+            throw new BadCredentialsException("Refresh token has expired.");
+        }
+        log.info("Step 3: Token expiration check passed.");
+
+        String uuid = (String) payload.get("uid");
+        String identity = (String) payload.get("identity");
+        if (uuid == null || identity == null) {
+            log.warn("Refresh token failed: Payload is invalid. UUID or identity is missing.");
+            throw new BadCredentialsException("Invalid refresh token payload.");
+        }
+        log.info("Step 4: Payload validation passed for {} with UUID: {}", identity, uuid);
+
+        // 2. 检查 Redis 中存储的 Token 是否匹配
+        String redisKey = "COMPANY".equals(identity)
+                ? REFRESH_TOKEN_COMPANY_KEY_PREFIX + uuid
+                : REFRESH_TOKEN_USER_KEY_PREFIX + uuid;
+        log.info("Step 5: Checking Redis for token with key: {}", redisKey);
+
+        String storedToken = RedisUtils.get(redisKey, 0);
+        if (storedToken == null) {
+            log.warn("Refresh token failed: No refresh token found in Redis for key: {}. The user may have logged out or the session expired.", redisKey);
+            throw new BadCredentialsException("Refresh token is invalid or has been revoked.");
+        }
+        if (!storedToken.equals(refreshToken)) {
+            log.warn("Refresh token failed: Provided token does not match the stored token in Redis for key: {}.", redisKey);
+            // Potentially a stolen token is being used. For security, we could revoke all tokens for this user.
+            RedisUtils.del(redisKey, 0); // Invalidate the session.
+            throw new BadCredentialsException("Refresh token is invalid or has been revoked.");
+        }
+        log.info("Step 6: Redis token validation passed.");
+
+        // 3. 检查 Token 是否在黑名单中
+        String blacklistKey = BLACKLIST_REFRESH_TOKEN_PREFIX + refreshToken;
+        log.info("Step 7: Checking blacklist for token with key: {}", blacklistKey);
+        if (RedisUtils.isTokenBlacklisted(blacklistKey, 0)) {
+            log.warn("Refresh token failed: Token is blacklisted. Key: {}", blacklistKey);
+            throw new BadCredentialsException("Refresh token has been blacklisted.");
+        }
+        log.info("Step 8: Blacklist check passed.");
+
+        // 4. 生成新的 Access Token 和 Refresh Token
+        String newAccessToken = jwtUtils.generateAccessToken(uuid, identity);
+        String newRefreshToken = jwtUtils.generateRefreshToken(uuid, identity, ((Number) payload.get("ver")).intValue());
+        int expirationInSeconds = REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60;
+        log.info("Step 9: New tokens generated successfully.");
+
+        // 5. 立即更新 Redis 中的 Token 并将旧 Token 加入黑名单，以缩短竞争窗口
+        RedisUtils.set(redisKey, newRefreshToken, expirationInSeconds, 0);
+        RedisUtils.addToBlacklist(blacklistKey, expirationInSeconds, 0);
+        log.info("Step 10: Redis updated with new token and old token blacklisted.");
+        
+        log.info("Successfully rotated refresh token for {} with UUID: {}", identity, uuid);
+
+        return new LoginResponse(newAccessToken, newRefreshToken);
+    }
+
+    @Override
+    public void logout(RefreshTokenRequest request) {
+        String refreshToken = request.getRefreshToken();
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            // No token provided, nothing to do
+            return;
+        }
+
+        try {
+            Map<String, Object> payload = jwtUtils.decode(refreshToken);
+            String uuid = (String) payload.get("uid");
+            String identity = (String) payload.get("identity");
+
+            if (uuid != null && identity != null) {
+                // 1. 从 Redis 中删除有效的 Refresh Token
+                String redisKey = "COMPANY".equals(identity)
+                        ? REFRESH_TOKEN_COMPANY_KEY_PREFIX + uuid
+                        : REFRESH_TOKEN_USER_KEY_PREFIX + uuid;
+                RedisUtils.del(redisKey, 0);
+                log.info("Revoked refresh token for {} with UUID: {}", identity, uuid);
+
+                // 2. 将该 Refresh Token 加入黑名单，防止在过期前被重用
+                int expirationInSeconds = REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60;
+                RedisUtils.addToBlacklist(BLACKLIST_REFRESH_TOKEN_PREFIX + refreshToken, expirationInSeconds, 0);
+                log.info("Added refresh token to blacklist for {} with UUID: {}", identity, uuid);
+            }
+        } catch (Exception e) {
+            // 如果 token 无效或已过期，解码会失败，但我们不需要抛出异常，因为目标就是让它失效
+            log.warn("Could not decode refresh token during logout, it might be invalid or expired: {}", e.getMessage());
+        }
     }
 }

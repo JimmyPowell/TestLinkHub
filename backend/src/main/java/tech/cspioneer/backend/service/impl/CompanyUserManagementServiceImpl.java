@@ -11,6 +11,8 @@ import tech.cspioneer.backend.entity.dto.response.UserResponse;
 import tech.cspioneer.backend.exception.ResourceNotFoundException;
 import tech.cspioneer.backend.exception.UserManagementException;
 import tech.cspioneer.backend.mapper.CompanyMapper;
+import tech.cspioneer.backend.mapper.CompanyUserSearchMapper;
+import tech.cspioneer.backend.mapper.UserDetailMapper;
 import tech.cspioneer.backend.mapper.UserMapper;
 import tech.cspioneer.backend.model.response.PagedResponse;
 import tech.cspioneer.backend.service.CompanyUserManagementService;
@@ -19,20 +21,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
+import tech.cspioneer.backend.entity.dto.response.UserDetailResponse;
 @Service
 @RequiredArgsConstructor
 public class CompanyUserManagementServiceImpl implements CompanyUserManagementService {
 
     private final UserMapper userMapper;
     private final CompanyMapper companyMapper;
+    private final CompanyUserSearchMapper companyUserSearchMapper;
+    private final UserDetailMapper userDetailMapper;
 
     @Override
-    public PagedResponse<UserResponse> getCompanyUsers(int page, int size, String currentUserUuid) {
+    public PagedResponse<UserResponse> getCompanyUsers(int page, int size, String uuid, String username, String status, String phoneNumber, String currentUserUuid) {
         Company company = getCompanyFromCurrentUser(currentUserUuid);
         int offset = page * size;
-        List<User> users = userMapper.findUsersWithPaginationByCompanyId(company.getId(), offset, size);
-        long totalElements = userMapper.countAllUsersByCompanyId(company.getId());
+
+        List<User> users = companyUserSearchMapper.searchCompanyUsers(company.getId(), uuid, username, status, phoneNumber, offset, size);
+        long totalElements = companyUserSearchMapper.countSearchCompanyUsers(company.getId(), uuid, username, status, phoneNumber);
+        
         int totalPages = (int) Math.ceil((double) totalElements / size);
 
         List<UserResponse> userResponses = users.stream()
@@ -141,5 +147,15 @@ public class CompanyUserManagementServiceImpl implements CompanyUserManagementSe
         userResponse.setMeetingCount(user.getMeetingCount());
         userResponse.setUpdatedAt(user.getUpdatedAt());
         return userResponse;
+    }
+
+    @Override
+    public UserDetailResponse getUserDetails(String uuid, String currentUserUuid) {
+        // First, check if the current user has permission to view the target user.
+        findUserAndCheckPermission(uuid, currentUserUuid);
+
+        // If permission check passes, fetch the detailed user information.
+        return userDetailMapper.findUserDetailByUuid(uuid)
+                .orElseThrow(() -> new ResourceNotFoundException("User details not found for uuid: " + uuid));
     }
 }

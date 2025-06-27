@@ -11,6 +11,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -76,6 +78,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/register/enterprise").permitAll() // 预留企业注册端点
                 .requestMatchers("/api/auth/login/user").permitAll()
                 .requestMatchers("/api/auth/login/company").permitAll()
+                .requestMatchers("/api/auth/refresh").permitAll()
+                .requestMatchers("/api/auth/logout").permitAll()
                 .requestMatchers("/api/auth/forgot-password").permitAll() // 预留忘记密码端点
                     .requestMatchers("/api/user/lesson/**").permitAll()
                 // 允许所有人访问 Swagger UI 和 API 文档
@@ -110,8 +114,19 @@ public class SecurityConfig {
             // 禁用表单登录
             .formLogin(AbstractHttpConfigurer::disable)
             // 添加JWT过滤器
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            // 配置异常处理
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(authenticationEntryPoint())
+            );
             
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return (request, response, authException) -> {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+        };
     }
 }

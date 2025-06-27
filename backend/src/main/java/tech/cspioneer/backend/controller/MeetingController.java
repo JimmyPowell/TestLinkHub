@@ -26,8 +26,8 @@ public class MeetingController {
     private MeetingPartService meetingPartService;
 
 
-    //获取参会申请详细信息-/api/user/meeting/part/{part_uuid}
-    @PreAuthorize("hasAuthority('USER')")
+    //获取参会申请详细信息-/api/user/meeting/part/{part_uuid}+
+    @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
     @GetMapping("/part")
     public ResponseEntity<ApiResponse<MeetingParticipant>> getMeetingPartDetail(
             @RequestParam String part_uuid,
@@ -38,8 +38,8 @@ public class MeetingController {
         return ResponseEntity.ok(new ApiResponse<>(200,"获取参会详细信息成功",part));
     }
 
-    //用户获取自己的参会申请列表-/api/user/meeting/part/list/{page}{size}
-    @PreAuthorize("hasAuthority('USER')")
+    //用户获取自己的参会申请列表-/api/user/meeting/part/list/{page}{size}+
+    @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
     @GetMapping("/part/list/")
     public ResponseEntity<ApiResponse<List<MeetingParticipant>>> getUserPartList(
             @RequestParam int page,
@@ -50,8 +50,8 @@ public class MeetingController {
     }
 
 
-    //会议浏览-/api/user/meeting/list/{page}{size}
-    @PreAuthorize("hasAuthority('USER')")
+    //会议浏览-/api/user/meeting/list/{page}{size}+
+    @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
     @GetMapping("/list/")
     public ResponseEntity<ApiResponse<List<MeetingVersion>>> browseMeetings(
             @RequestParam int page,
@@ -63,25 +63,26 @@ public class MeetingController {
 
 
 
-    //会议详情-/api/user/meeting/{meeting_uuid}
-    @PreAuthorize("hasAuthority('USER')")
+    //会议详情-/api/user/meeting/{meeting_uuid}+
+    @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
     @GetMapping("/")
     public ResponseEntity<ApiResponse<MeetingVersion>> getMeetingDetails(
             @RequestParam String meeting_uuid,
             @AuthenticationPrincipal String useruuid
     ){
-        MeetingVersion details = meetingService.getMeetingVersionDetails(meeting_uuid);
+        MeetingVersion details = meetingService.getMeetingDetails(meeting_uuid);
         return ResponseEntity.ok(ApiResponse.success(200, "获取会议详情成功", details));
     }
 
 
-    //参加会议-/api/user/meeting/participant
-    @PostMapping("/participant")
+    //参加会议-/api/user/meeting/participant+
+    @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
+    @GetMapping("/participant")
     public ResponseEntity<ApiResponse<Void>> joinMeeting(
             @RequestBody MeetingParticipantRequest request,
             @AuthenticationPrincipal String useruuid) {
         meetingPartService.joinMeeting(request, useruuid);
-        return ResponseEntity.ok(new ApiResponse<>());
+        return ResponseEntity.ok(new ApiResponse<>(200,"参会申请发送成功",null));
     }
 
 }
