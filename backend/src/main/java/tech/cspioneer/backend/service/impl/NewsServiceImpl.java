@@ -45,7 +45,8 @@ public class NewsServiceImpl implements NewsService {
         News news = new News();
         news.setUuid(UuidUtils.randomUuid());
         news.setIsDeleted(0);
-        news.setCompanyId(request.getCompanyId());
+        Company checkCompany = companyMapper.findByUuid(request.getCompanyUuid());
+        news.setCompanyId(checkCompany.getId());
         news.setVisible(request.getVisible());
         if (request.getIdentity().equals("COMPANY")){
             Company company = companyMapper.findByUuid(request.getUserUUid());

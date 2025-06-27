@@ -8,7 +8,7 @@ public class NewsUploadRequest {
     /**
      * 发布公司ID
      */
-    private long companyId;
+    private String companyUuid;
     /**
      * 封面图片URL
      */
@@ -16,7 +16,7 @@ public class NewsUploadRequest {
     /**
      * 此版本内容的创建/修改者ID
      */
-    private long publisherId;
+    private String publisherUuid;
     /**
      * 新闻正文内容 (HTML或Markdown)
      */
