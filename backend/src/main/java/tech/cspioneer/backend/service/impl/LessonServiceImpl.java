@@ -36,6 +36,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     @Transactional
     public int uploadLesson(Map<String, Object> lessonRequestBody) {
+        System.out.println("uploadLesson called with: " + lessonRequestBody);
         String identity = (String) lessonRequestBody.get("identity");
         String uuid = (String) lessonRequestBody.get("userId");
         try {
@@ -481,6 +482,7 @@ public class LessonServiceImpl implements LessonService {
         return result;
     }
 
+}
     @Override
     public int softDeleteLessonAuditHistory(List<String> uuids) {
         if (uuids == null || uuids.isEmpty()) return 0;
@@ -514,4 +516,11 @@ public class LessonServiceImpl implements LessonService {
         result.put("list", list);
         return result;
     }
-} 
+
+    
+
+
+
+
+
+

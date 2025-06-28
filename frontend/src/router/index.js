@@ -70,6 +70,12 @@ const routes = [
         meta: { title: '课程管理' }
       },
       {
+        path: 'course/:uuid',
+        name: 'CourseDetail',
+        component: () => import('../views/dashboard/CourseDetail.vue'),
+        meta: { title: '课程详情' }
+      },
+      {
         path: 'meetings',
         name: 'Meetings',
         component: () => import('../views/dashboard/Meetings.vue'),
