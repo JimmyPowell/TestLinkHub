@@ -64,7 +64,7 @@ public class NewsServiceImpl implements NewsService {
             newsContent.setVersion(1);
             newsContent.setStatus(NewsContentStatus.pending);
             newsContentMapper.insert(newsContent);
-            news.setPendingContendId(newsContent.getId());
+            news.setPendingContentId(newsContent.getId());
             newsMapper.update(news);
         }else if (request.getIdentity().equals("ADMIN")){
             User admin = userMapper.findByUuid(request.getUserUUid());
@@ -82,7 +82,7 @@ public class NewsServiceImpl implements NewsService {
             newsContent.setVersion(1);
             newsContent.setStatus(NewsContentStatus.published);
             newsContentMapper.insert(newsContent);
-            news.setPendingContendId(newsContent.getId());
+            news.setPendingContentId(newsContent.getId());
             newsMapper.update(news);
             NewsAuditHistory newsAuditHistory = new NewsAuditHistory();
             newsAuditHistory.setAuditStatus(NewsAuditHistoryStatus.rejected);
@@ -118,7 +118,7 @@ public class NewsServiceImpl implements NewsService {
             newsContent.setResourceUrl(request.getResourceUrl());
             newsContent.setVersion(newsContentMapper.getMaxVersionByNewsId(news.getId())+1);
             newsContentMapper.insert(newsContent);
-            news.setPendingContendId(newsContent.getId());
+            news.setPendingContentId(newsContent.getId());
             news.setStatus(NewsStatus.pending);
             newsMapper.update(news);
         }else if (request.getIdentity().equals("ADMIN")){
@@ -133,7 +133,7 @@ public class NewsServiceImpl implements NewsService {
             newsContent.setResourceUrl(request.getResourceUrl());
             newsContent.setVersion(newsContentMapper.getMaxVersionByNewsId(news.getId())+1);
             newsContentMapper.insert(newsContent);
-            news.setCurrentContendId(newsContent.getId());
+            news.setCurrentContentId(newsContent.getId());
             news.setStatus(NewsStatus.published);
             newsMapper.update(news);
             NewsAuditHistory newsAuditHistory = new NewsAuditHistory();
@@ -170,7 +170,7 @@ public class NewsServiceImpl implements NewsService {
     @Override
     public NewsDetailResponse getNewsDetail(String uuid, String userUuid, String identity) {
         News news = newsMapper.findByUuid(uuid);
-        NewsContent newsContent = newsContentMapper.findById(news.getCurrentContendId());
+        NewsContent newsContent = newsContentMapper.findById(news.getCurrentContentId());
         NewsDetailResponse newsDetailResponse = CopyTools.copy(newsContent, NewsDetailResponse.class);
         newsDetailResponse.setContentCreatedAt(newsContent.getCreatedAt());
         newsDetailResponse.setCompanyId(news.getCompanyId());
@@ -246,7 +246,7 @@ public class NewsServiceImpl implements NewsService {
             response.setCompanyId(news.getCompanyId());
             response.setCreatedAt(news.getCreatedAt());
             // 获取新闻内容摘要
-            NewsContent content = newsContentMapper.findById(news.getCurrentContendId());
+            NewsContent content = newsContentMapper.findById(news.getCurrentContentId());
             if (content != null) {
                 response.setTitle(content.getTitle());
                 response.setSummary(content.getSummary());
@@ -272,7 +272,7 @@ public class NewsServiceImpl implements NewsService {
         switch (newsAuditReviewRequest.getAuditStatus()){
             case "rejected" ->{
                 News news = newsMapper.findByUuid(uuid);
-                NewsContent newsContent = newsContentMapper.findById(news.getPendingContendId());
+                NewsContent newsContent = newsContentMapper.findById(news.getPendingContentId());
                 newsContent.setStatus(NewsContentStatus.archived);
                 newsContentMapper.update(newsContent);
                 NewsAuditHistory newsAuditHistory = new NewsAuditHistory();
@@ -282,19 +282,19 @@ public class NewsServiceImpl implements NewsService {
                 newsAuditHistory.setComments(newsAuditReviewRequest.getComment());
                 newsAuditHistory.setAuditorId(admin.getId());
                 newsAuditHistoryMapper.insert(newsAuditHistory);
-                if (news.getCurrentContendId() == null){
+                if (news.getCurrentContentId() == null){
                     news.setStatus(NewsStatus.archived);
                     newsMapper.update(news);
                 }else{
                     news.setStatus(NewsStatus.published);
-                    news.setPendingContendId(null);
+                    news.setPendingContentId(null);
                     newsMapper.update(news);
                 }
                 notificationService.sendSystemNotificationToUser(news.getCompanyId(),"您的新闻已被拒绝",newsAuditReviewRequest.getComment(), RelatedObjectType.COMPANY,news.getCompanyId());
             }
             case "approved" ->{
                 News news = newsMapper.findByUuid(uuid);
-                NewsContent newsContent = newsContentMapper.findById(news.getPendingContendId());
+                NewsContent newsContent = newsContentMapper.findById(news.getPendingContentId());
                 newsContent.setStatus(NewsContentStatus.published);
                 newsContentMapper.update(newsContent);
                 NewsAuditHistory newsAuditHistory = new NewsAuditHistory();
@@ -305,8 +305,8 @@ public class NewsServiceImpl implements NewsService {
                 newsAuditHistory.setAuditorId(admin.getId());
                 newsAuditHistoryMapper.insert(newsAuditHistory);
                 news.setStatus(NewsStatus.archived);
-                news.setCurrentContendId(news.getPendingContendId());
-                news.setPendingContendId(null);
+                news.setCurrentContentId(news.getPendingContentId());
+                news.setPendingContentId(null);
                 newsMapper.update(news);
                 notificationService.sendSystemNotificationToUser(news.getCompanyId(),"您的新闻已被通过",newsAuditReviewRequest.getComment(), RelatedObjectType.COMPANY,news.getCompanyId());
             }
