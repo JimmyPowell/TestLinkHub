@@ -132,6 +132,41 @@ public class AdminLessonController {
         }
     }
 
+    @GetMapping("/admin/lesson/review/overview")
+    public ResponseEntity<?> overviewLesson(
+        @RequestParam(value = "name", required = false) String name,
+        @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "lesson_uuid", required = false) String lessonUuid,
+        @RequestParam(value = "company_uuid") String companyUuid,
+        @RequestParam(defaultValue = "0") Integer page,
+        @RequestParam(defaultValue = "10") Integer size,
+        Authentication authentication
+    ) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+        if (!("COMPANY".equals(identity) || "ADMIN".equals(identity))) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
+        }
+        if (companyUuid == null || companyUuid.isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(4001, "company_uuid不能为空"));
+        }
+        try {
+            Map<String, Object> result = lessonService.getPendingReviewLessonsOverview(
+                name, status, lessonUuid, companyUuid, page, size
+            );
+            return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功", "data", result));
+        } catch (LessonServiceException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(4001, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
+        }
+    }
+
     @GetMapping("/root/lesson/review/history")
     public ResponseEntity<?> getLessonReviewHistory(@RequestParam(value = "audit_status", required = false) String auditStatus,
                                                    @RequestParam(value = "begin_time", required = false) String beginTime,

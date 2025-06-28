@@ -39,4 +39,7 @@ public interface  LessonService {
 
     // 删除审核历史
     int softDeleteLessonAuditHistory(List<String> uuids);
+
+    // 新增：公司待审核课程概览
+    Map<String, Object> getPendingReviewLessonsOverview(String name, String status, String lessonUuid, String companyUuid, int page, int size);
 }

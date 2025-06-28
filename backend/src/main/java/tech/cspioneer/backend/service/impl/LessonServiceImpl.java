@@ -330,7 +330,6 @@ public class LessonServiceImpl implements LessonService {
         int offset = page * size;
         // 查课程
         Lesson lesson = lessonMapper.selectByUuid(uuid);
-        Long lessonId = lesson.getId();
         Long currentVersionId = lesson.getCurrentVersionId();
         LessonVersion version = null;
         if (currentVersionId != null) {
@@ -444,7 +443,7 @@ public class LessonServiceImpl implements LessonService {
         int size = req.getSize() != null ? req.getSize() : 10;
         int offset = page * size;
         List<Map<String, Object>> rawList = lessonMapper.searchLessonWithCurrentVersion(keyword, size, offset);
-        List<LessonListItemResponse> resultList = new java.util.ArrayList<>();
+        List<LessonListItemResponse> resultList = new ArrayList<>();
         rawTravel(rawList, resultList);
         LessonSearchResponse resp = new LessonSearchResponse();
         resp.setTotal(resultList.size());
@@ -487,12 +486,7 @@ public class LessonServiceImpl implements LessonService {
         if (uuids == null || uuids.isEmpty()) return 0;
         return lessonAuditHistoryMapper.softDeleteHistoryByUuids(uuids);
     }
-    
-    /**
-     * 验证资源类型是否为数据库ENUM允许的值
-     * @param resourceType 资源类型
-     * @return 是否为有效值
-     */
+
     private boolean isValidResourceType(String resourceType) {
         if (resourceType == null) return false;
         return resourceType.equals("video") || 
@@ -501,5 +495,23 @@ public class LessonServiceImpl implements LessonService {
                resourceType.equals("image") || 
                resourceType.equals("link") || 
                resourceType.equals("other");
+    }
+
+    // 新增：公司待审核课程概览
+    public Map<String, Object> getPendingReviewLessonsOverview(String name, String status, String lessonUuid, String companyUuid, int page, int size) {
+        Company company = companyMapper.findByUuid(companyUuid);
+        if (company == null) throw new LessonServiceException("公司不存在");
+        Long companyId = company.getId();
+        int offset = page * size;
+        List<Map<String, Object>> list = lessonMapper.selectCompanyPendingReviewLessonsOverview(
+            name, status, lessonUuid, companyId, size, offset
+        );
+        int total = lessonMapper.countCompanyPendingReviewLessonsOverview(
+            name, status, lessonUuid, companyId
+        );
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("list", list);
+        return result;
     }
 } 

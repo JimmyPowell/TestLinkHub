@@ -22,7 +22,6 @@ public interface LessonMapper {
     @Select({
         "<script>",
         "SELECT",
-        "  l.id AS lesson_id,",
         "  v.uuid AS uuid,",
         "  v.name AS name,",
         "  v.image_url AS image_url,",
@@ -55,8 +54,7 @@ public interface LessonMapper {
     @Select({
         "<script>",
         "SELECT",
-        "  l.id AS lesson_id,",
-        "  l.uuid AS uuid,",
+        "  v.uuid AS uuid,",
         "  v.name AS name,",
         "  v.image_url AS image_url,",
         "  v.description AS description,",
@@ -94,7 +92,7 @@ public interface LessonMapper {
     @Select({
         "<script>",
         "SELECT",
-        "  l.id AS lessonId,",
+        "  v.uuid AS uuid,",
         "  v.name AS name,",
         "  v.image_url AS imageUrl,",
         "  v.description AS description,",
@@ -113,4 +111,62 @@ public interface LessonMapper {
         "</script>"
     })
     List<Map<String, Object>> selectReviewLessonsWithPendingVersion(@Param("pageSize") int pageSize, @Param("offset") int offset);
+
+    @Select({
+        "<script>",
+        "SELECT",
+        "  v.uuid AS uuid,",
+        "  v.name AS name,",
+        "  v.image_url AS imageUrl,",
+        "  v.description AS description,",
+        "  v.author_name AS authorName,",
+        "  v.version AS version,",
+        "  v.status AS status,",
+        "  v.created_at AS createdAt",
+        "FROM lesson l",
+        "LEFT JOIN lesson_version v ON l.pending_version_id = v.id",
+        "<where>",
+        "  l.is_deleted = 0",
+        "  AND l.status = 'pending_review'",
+        "  AND l.pending_version_id IS NOT NULL",
+        "  AND l.publisher_id = #{companyId}",
+        "  <if test='name != null and name != \"\"'>AND v.name LIKE CONCAT('%', #{name}, '%')</if>",
+        "  <if test='status != null and status != \"\"'>AND v.status = #{status}</if>",
+        "  <if test='lessonUuid != null and lessonUuid != \"\"'>AND l.uuid = #{lessonUuid}</if>",
+        "</where>",
+        "ORDER BY l.updated_at DESC",
+        "LIMIT #{pageSize} OFFSET #{offset}",
+        "</script>"
+    })
+    List<Map<String, Object>> selectCompanyPendingReviewLessonsOverview(
+        @Param("name") String name,
+        @Param("status") String status,
+        @Param("lessonUuid") String lessonUuid,
+        @Param("companyId") Long companyId,
+        @Param("pageSize") int pageSize,
+        @Param("offset") int offset
+    );
+
+    @Select({
+        "<script>",
+        "SELECT COUNT(*)",
+        "FROM lesson l",
+        "LEFT JOIN lesson_version v ON l.pending_version_id = v.id",
+        "<where>",
+        "  l.is_deleted = 0",
+        "  AND l.status = 'pending_review'",
+        "  AND l.pending_version_id IS NOT NULL",
+        "  AND l.publisher_id = #{companyId}",
+        "  <if test='name != null and name != \"\"'>AND v.name LIKE CONCAT('%', #{name}, '%')</if>",
+        "  <if test='status != null and status != \"\"'>AND v.status = #{status}</if>",
+        "  <if test='lessonUuid != null and lessonUuid != \"\"'>AND l.uuid = #{lessonUuid}</if>",
+        "</where>",
+        "</script>"
+    })
+    int countCompanyPendingReviewLessonsOverview(
+        @Param("name") String name,
+        @Param("status") String status,
+        @Param("lessonUuid") String lessonUuid,
+        @Param("companyId") Long companyId
+    );
 }
