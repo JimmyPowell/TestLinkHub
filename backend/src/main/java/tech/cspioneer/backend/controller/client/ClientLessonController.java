@@ -52,9 +52,15 @@ public class ClientLessonController {
     }
 
     @GetMapping("/user/lesson/detail")
-    public ResponseEntity<?> getLessonDetail(@RequestBody LessonDetailRequest req,
+    public ResponseEntity<?> getLessonDetail(@RequestParam String uuid,
+                                             @RequestParam(defaultValue = "0") Integer page,
+                                             @RequestParam(defaultValue = "10") Integer size,
                                              @AuthenticationPrincipal String userUuid,
                                              Authentication authentication) {
+        LessonDetailRequest req = new LessonDetailRequest();
+        req.setUuid(uuid);
+        req.setPage(page);
+        req.setSize(size);
         String identity = "UNKNOWN";
         if (authentication != null && authentication.isAuthenticated()) {
             identity = authentication.getAuthorities().stream()
@@ -74,9 +80,15 @@ public class ClientLessonController {
     }
 
     @GetMapping("/user/lesson/search")
-    public ResponseEntity<?> searchLesson(@RequestBody LessonSearchRequest req,
+    public ResponseEntity<?> searchLesson(@RequestParam(value = "key_word", required = false) String keyWord,
+                                          @RequestParam(defaultValue = "0") Integer page,
+                                          @RequestParam(defaultValue = "10") Integer size,
                                           @AuthenticationPrincipal String userUuid,
                                           Authentication authentication) {
+        LessonSearchRequest req = new LessonSearchRequest();
+        req.setKeyWord(keyWord);
+        req.setPage(page);
+        req.setSize(size);
         String identity = "UNKNOWN";
         if (authentication != null && authentication.isAuthenticated()) {
             identity = authentication.getAuthorities().stream()

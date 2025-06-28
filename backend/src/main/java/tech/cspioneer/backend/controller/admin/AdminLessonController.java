@@ -226,7 +226,8 @@ public class AdminLessonController {
     }
 
     @GetMapping("/root/lesson/review/list")
-    public ResponseEntity<?> getLessonReviewList(@RequestBody(required = false) Map<String, Object> pageBody,
+    public ResponseEntity<?> getLessonReviewList(@RequestParam(defaultValue = "0") Integer size,
+                                                 @RequestParam(defaultValue = "10") Integer page,
                                                  @AuthenticationPrincipal String userUuid,
                                                  Authentication authentication) {
         String identity = "UNKNOWN";
@@ -238,11 +239,6 @@ public class AdminLessonController {
         }
         if (!"ADMIN".equals(identity)) {
             return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
-        }
-        int page = 0, size = 10;
-        if (pageBody != null) {
-            if (pageBody.get("page") != null) page = (int) pageBody.get("page");
-            if (pageBody.get("size") != null) size = (int) pageBody.get("size");
         }
         int offset = page * size;
         List<Map<String, Object>> list = lessonService.getReviewLessonsWithPendingVersion(size, offset);
