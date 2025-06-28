@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class LessonSearchRequest {
-    private String keyword;
+    private String keyWord;
     private Integer page = 0;
     private Integer size = 10;
 } 

@@ -39,21 +39,29 @@ public class LessonServiceImpl implements LessonService {
         String identity = (String) lessonRequestBody.get("identity");
         String uuid = (String) lessonRequestBody.get("userId");
         try {
-            // 1. 创建课程资源（支持多个资源）
-            Object resObj = lessonRequestBody.get("resources");
-            List<Map<String, Object>> resources = null;
-            if (resObj instanceof List<?>) {
+            // 1. 处理资源数据 - 适配新的请求体结构
+            List<String> resourcesUrls = null;
+            Object resourcesUrlsObj = lessonRequestBody.get("resourcesUrls");
+            if (resourcesUrlsObj instanceof List<?>) {
                 @SuppressWarnings("unchecked")
-                List<Map<String, Object>> tmp = (List<Map<String, Object>>) resObj;
-                resources = tmp;
+                List<String> tmp = (List<String>) resourcesUrlsObj;
+                resourcesUrls = tmp;
             }
+            
+            String resourcesType = (String) lessonRequestBody.get("resourcesType");
+            // 验证resourcesType是否为有效值
+            if (resourcesType != null && !isValidResourceType(resourcesType)) {
+                throw new LessonServiceException("无效的资源类型: " + resourcesType + "，允许的类型: video, audio, document, image, link, other");
+            }
+            
             List<Integer> sortOrders = null;
-            Object sortOrdersObj = lessonRequestBody.get("sort_orders");
+            Object sortOrdersObj = lessonRequestBody.get("sortOrders");
             if (sortOrdersObj instanceof List<?>) {
                 @SuppressWarnings("unchecked")
                 List<Integer> tmp = (List<Integer>) sortOrdersObj;
                 sortOrders = tmp;
             }
+            
             // 2. 创建课程版本
             LessonVersion version = new LessonVersion();
             version.setUuid(UUID.randomUUID().toString());
@@ -66,12 +74,14 @@ public class LessonServiceImpl implements LessonService {
             version.setSortOrder(0);
             version.setIsDeleted(0);
             version.setCreatedAt(LocalDateTime.now());
+            
             // 业务分流：管理员 or 企业用户
             Lesson lesson = new Lesson();
             lesson.setUuid(UUID.randomUUID().toString());
             lesson.setIsDeleted(0);
             lesson.setCreatedAt(LocalDateTime.now());
             lesson.setUpdatedAt(LocalDateTime.now());
+            
             if ("COMPANY".equals(identity)) {
                 Company company = companyMapper.findByUuid(uuid);
                 lesson.setPublisherId(company.getId());
@@ -105,14 +115,15 @@ public class LessonServiceImpl implements LessonService {
             } else {
                 return -1; // 其他身份不允许
             }
-            if (resources != null) {
-                for (int i = 0; i < resources.size(); i++) {
-                    Map<String, Object> res = resources.get(i);
+            
+            // 3. 处理资源 - 使用新的数据结构
+            if (resourcesUrls != null && !resourcesUrls.isEmpty()) {
+                for (int i = 0; i < resourcesUrls.size(); i++) {
                     LessonResources resource = new LessonResources();
                     resource.setUuid(UUID.randomUUID().toString());
                     resource.setLessonVersionId(version.getId());
-                    resource.setResourcesUrl((String) res.get("resourcesUrl"));
-                    resource.setResourcesType((String) res.get("resourcesType"));
+                    resource.setResourcesUrl(resourcesUrls.get(i));
+                    resource.setResourcesType(resourcesType != null ? resourcesType : "other");
                     if (sortOrders != null && i < sortOrders.size() && sortOrders.get(i) != null) {
                         resource.setSortOrder(sortOrders.get(i));
                     } else {
@@ -198,29 +209,36 @@ public class LessonServiceImpl implements LessonService {
         newVersion.setCreatedAt(LocalDateTime.now());
         lessonVersionMapper.insert(newVersion);
 
-        // 4. 插入新资源
-        Object resObj = lessonRequestBody.get("resources");
-        List<Map<String, Object>> resources = null;
-        if (resObj instanceof List<?>) {
+        // 4. 插入新资源 - 适配新的请求体结构
+        List<String> resourcesUrls = null;
+        Object resourcesUrlsObj = lessonRequestBody.get("resourcesUrls");
+        if (resourcesUrlsObj instanceof List<?>) {
             @SuppressWarnings("unchecked")
-            List<Map<String, Object>> tmp = (List<Map<String, Object>>) resObj;
-            resources = tmp;
+            List<String> tmp = (List<String>) resourcesUrlsObj;
+            resourcesUrls = tmp;
         }
+        
+        String resourcesType = (String) lessonRequestBody.get("resourcesType");
+        // 验证resourcesType是否为有效值
+        if (resourcesType != null && !isValidResourceType(resourcesType)) {
+            throw new LessonServiceException("无效的资源类型: " + resourcesType + "，允许的类型: video, audio, document, image, link, other");
+        }
+        
         List<Integer> sortOrders = null;
-        Object sortOrdersObj = lessonRequestBody.get("sort_orders");
+        Object sortOrdersObj = lessonRequestBody.get("sortOrders");
         if (sortOrdersObj instanceof List<?>) {
             @SuppressWarnings("unchecked")
             List<Integer> tmp = (List<Integer>) sortOrdersObj;
             sortOrders = tmp;
         }
-        if (resources != null) {
-            for (int i = 0; i < resources.size(); i++) {
-                Map<String, Object> res = resources.get(i);
+        
+        if (resourcesUrls != null && !resourcesUrls.isEmpty()) {
+            for (int i = 0; i < resourcesUrls.size(); i++) {
                 LessonResources resource = new LessonResources();
                 resource.setUuid(UUID.randomUUID().toString());
                 resource.setLessonVersionId(lessonVersionMapper.selectByUuid(newVersion.getUuid()).getId());
-                resource.setResourcesUrl((String) res.get("resourcesUrl"));
-                resource.setResourcesType((String) res.get("resourcesType"));
+                resource.setResourcesUrl(resourcesUrls.get(i));
+                resource.setResourcesType(resourcesType != null ? resourcesType : "other");
                 // sortOrder与资源一一对应
                 if (sortOrders != null && i < sortOrders.size() && sortOrders.get(i) != null) {
                     resource.setSortOrder(sortOrders.get(i));
@@ -352,8 +370,8 @@ public class LessonServiceImpl implements LessonService {
         if (pendingVersionId == null) return -1;
         LessonVersion pendingVersion = lessonVersionMapper.selectById(pendingVersionId);
         if (pendingVersion == null) return -1;
-        String result = (String) approvalBody.get("result"); // "approved" or "rejected"
-        String comments = (String) approvalBody.get("comments");
+        String result = (String) approvalBody.get("auditStatus"); // "approved" or "rejected"
+        String comments = (String) approvalBody.get("comment");
         // 2. 审批通过
         Long auditorId = approvalBody.get("auditorId") != null ? ((Number)approvalBody.get("auditorId")).longValue() : null;
         if ("approved".equalsIgnoreCase(result)) {
@@ -384,7 +402,7 @@ public class LessonServiceImpl implements LessonService {
             lesson.setUpdatedAt(java.time.LocalDateTime.now());
             lessonMapper.update(lesson);
             // 通知发布者
-            sendLessonApprovalNotification(lesson, pendingVersion, true, comments);
+            sendLessonApprovalNotification(lesson, pendingVersion, true, comments);;
             // 插入审批历史
             insertLessonAuditHistory(pendingVersionId, auditorId, "approved", comments);
             return 1;
@@ -421,7 +439,7 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     public LessonSearchResponse searchLesson(LessonSearchRequest req) {
-        String keyword = req.getKeyword();
+        String keyword = req.getKeyWord();
         int page = req.getPage() != null ? req.getPage() : 0;
         int size = req.getSize() != null ? req.getSize() : 10;
         int offset = page * size;
@@ -468,5 +486,20 @@ public class LessonServiceImpl implements LessonService {
     public int softDeleteLessonAuditHistory(List<String> uuids) {
         if (uuids == null || uuids.isEmpty()) return 0;
         return lessonAuditHistoryMapper.softDeleteHistoryByUuids(uuids);
+    }
+    
+    /**
+     * 验证资源类型是否为数据库ENUM允许的值
+     * @param resourceType 资源类型
+     * @return 是否为有效值
+     */
+    private boolean isValidResourceType(String resourceType) {
+        if (resourceType == null) return false;
+        return resourceType.equals("video") || 
+               resourceType.equals("audio") || 
+               resourceType.equals("document") || 
+               resourceType.equals("image") || 
+               resourceType.equals("link") || 
+               resourceType.equals("other");
     }
 } 

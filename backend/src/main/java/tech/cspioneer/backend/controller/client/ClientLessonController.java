@@ -5,8 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import tech.cspioneer.backend.entity.dto.request.LessonDetailRequest;
-import tech.cspioneer.backend.entity.dto.request.LessonSearchRequest;
+import tech.cspioneer.backend.entity.dto.request.*;
 import tech.cspioneer.backend.entity.dto.response.LessonListResponse;
 import tech.cspioneer.backend.entity.dto.response.LessonDetailResponse;
 import tech.cspioneer.backend.entity.dto.response.LessonSearchResponse;
@@ -26,10 +25,10 @@ public class ClientLessonController {
 
     @GetMapping("/user/lesson/all")
     public ResponseEntity<?> getAllLessons(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String authorName,
-            @RequestParam(required = false) String beginTime,
-            @RequestParam(required = false) String endTime,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "author_name", required = false) String authorName,
+            @RequestParam(value = "begin_time", required = false) String beginTime,
+            @RequestParam(value = "end_time", required = false) String endTime,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal String userUuid,
