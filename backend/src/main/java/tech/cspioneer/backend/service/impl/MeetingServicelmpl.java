@@ -136,6 +136,96 @@ public class MeetingServicelmpl implements MeetingService {
 
     }
 
+
+    @Override
+    public void createMeeting(MeetingCreateRequest res, String useruuid) {
+        Company company = getCompanyByUuid(useruuid);
+        if (company == null) {
+            System.out.println("用户不存在");
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+
+        // 创建会议主表，管理员创建时，状态为published
+        String meetingStatus = "published";
+        String versionStatus = "published";
+
+        Meeting meeting = Meeting.builder()
+                .uuid(UUID.randomUUID().toString())
+                .creatorId(company.getId())
+                .isDeleted(0)
+                .status(meetingStatus)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        meetingMapper.insert(meeting);
+
+        // 创建会议版本
+        MeetingVersion meetingVersion = MeetingVersion.builder()
+                .uuid(UUID.randomUUID().toString())
+                .meetingId(meeting.getId())
+                .version(1)
+                .name(res.getName())
+                .description(res.getDescription())
+                .coverImageUrl(res.getImageUrl())
+                .startTime(LocalDateTime.parse(res.getStartTime()))
+                .endTime(LocalDateTime.parse(res.getEndTime()))
+                .status(versionStatus)
+                .editorId(company.getId())
+                .createdAt(now)
+                .build();
+        meetingVersionMapper.insert(meetingVersion);
+
+        // 更新主表指向最新版本
+        meeting.setPendingVersionId(meetingVersion.getId());
+        if ("published".equals(versionStatus)) {
+            meeting.setCurrentVersionId(meetingVersion.getId());
+        }
+        meetingMapper.update(meeting);
+    }
+
+    @Override
+    public void updateMeeting(MeetingUpdateRequest res, String useruuid) {
+        Company company = getCompanyByUuid(useruuid);
+        if (company == null) {
+            System.out.println("用户不存在");
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+
+        Meeting meeting = meetingMapper.findByUuid(res.getMeetingUuid());
+        if (meeting == null) {
+            throw new ResourceNotFoundException("Meeting", "uuid", res.getMeetingUuid());
+        }
+
+        String versionStatus = "published";
+        Integer maxVersion = meetingVersionMapper.findMaxVersionByMeetingId(meeting.getId());
+        int newVersion = (maxVersion == null ? 1 : maxVersion + 1);
+
+        MeetingVersion meetingVersion = MeetingVersion.builder()
+                .uuid(UUID.randomUUID().toString())
+                .meetingId(meeting.getId())
+                .version(newVersion)
+                .name(res.getName())
+                .description(res.getDescription())
+                .coverImageUrl(res.getImageUrl())
+                .startTime(LocalDateTime.parse(res.getStartTime()))
+                .endTime(LocalDateTime.parse(res.getEndTime()))
+                .status(versionStatus)
+                .editorId(company.getId())
+                .createdAt(now)
+                .build();
+
+        meetingVersionMapper.insert(meetingVersion);
+
+        meeting.setPendingVersionId(meetingVersion.getId());
+        meeting.setUpdatedAt(now);
+        if ("published".equals(versionStatus)) {
+            meeting.setCurrentVersionId(meetingVersion.getId());
+        }
+        meetingMapper.update(meeting);
+    }
+
     @Override
     public void deleteMeeting(String meetingUuid) {
         // 1. 查找会议是否存在
@@ -264,19 +354,22 @@ public class MeetingServicelmpl implements MeetingService {
 
     @Override
     public List<MeetingVersion> getMeetingVersionsByCreator(String creatorUuid, int page, int size) {
-        User user = userMapper.findByUuid(creatorUuid);
-        Long creatorId = user.getId();
+        Company company = companyMapper.findByUuid(creatorUuid);
+        Long creatorId = company.getId();
 
-        // 2. 查找 meeting 表中 creator_id = 当前用户 的会议
         List<Long> meetingIds = meetingMapper.findMeetingIdsByCreatorId(creatorId);
-
         if (meetingIds.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // 3. 再查 meeting_version 中 meeting_id ∈ 上面ID 的所有版本，按创建时间或状态排序
-        return meetingVersionMapper.findVersionsByMeetingIds(meetingIds, page, size);
+        List<MeetingVersion> allVersions = meetingVersionMapper.findVersionsByMeetingIds(meetingIds);
+
+        // 手动分页
+        int fromIndex = Math.min((page - 1) * size, allVersions.size());
+        int toIndex = Math.min(fromIndex + size, allVersions.size());
+        return allVersions.subList(fromIndex, toIndex);
     }
+
 
     @Override
     public MeetingVersion getMeetingVersionDetail(String versionUuid, String userUuid) {
@@ -289,9 +382,9 @@ public class MeetingServicelmpl implements MeetingService {
         if (meeting == null || meeting.getIsDeleted() == 1) return null;
 
         // 3. 获取当前用户是否为会议创建人
-        User user = userMapper.findByUuid(userUuid);
-        Long userId = user.getId();
-        if (!meeting.getCreatorId().equals(userId)) {
+        Company user = companyMapper.findByUuid(userUuid);
+        Long companyId = user.getId();
+        if (!meeting.getCreatorId().equals(companyId)) {
             return null;
         }
 

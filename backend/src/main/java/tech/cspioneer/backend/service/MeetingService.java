@@ -18,6 +18,13 @@ public interface MeetingService {
     //更新会议
     public void updateMeetingWithVersion(MeetingUpdateRequest res, String useruuid);
 
+    //新创建会议
+    public void createMeeting(MeetingCreateRequest res, String useruuid );
+
+
+    //更新会议
+    public void updateMeeting(MeetingUpdateRequest res, String useruuid);
+
     //删除会议
     public void deleteMeeting(String meetingUuid);
 
