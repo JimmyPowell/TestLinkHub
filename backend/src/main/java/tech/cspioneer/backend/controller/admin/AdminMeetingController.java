@@ -130,7 +130,7 @@ public class AdminMeetingController {
 
 
     //获取会议创建/修改列表
-    @PreAuthorize("hasAuthority('COMPANY')")
+    @PreAuthorize("hasAnyAuthority('COMPANY')")
     @GetMapping("/version/application/list")
     public ResponseEntity<ApiResponse<List<MeetingVersion>>> getCreatedMeetingVersions(
             @AuthenticationPrincipal String useruuid,
@@ -141,7 +141,7 @@ public class AdminMeetingController {
         return ResponseEntity.ok(ApiResponse.success(200, "获取创建的会议版本成功", versions));
     }
 
-    @PreAuthorize("hasAuthority('COMPANY')")
+    @PreAuthorize("hasAnyAuthority('COMPANY')")
     @GetMapping("/version/detail")
     public ResponseEntity<ApiResponse<MeetingVersion>> getMeetingVersionDetail(
             @RequestParam String uuid,
@@ -154,6 +154,5 @@ public class AdminMeetingController {
 
         return ResponseEntity.ok(ApiResponse.success(200, "获取会议版本详情成功", version));
     }
-
 
 }

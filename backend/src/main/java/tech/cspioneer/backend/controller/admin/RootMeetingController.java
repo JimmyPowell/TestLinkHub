@@ -66,26 +66,26 @@ public class RootMeetingController {
     @Autowired
     private MeetingPartService meetingPartService;
 
-    // 创建会议（仅公司身份可访问）
+    // 创建会议
     @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<Void>> createMeeting(
             @RequestBody MeetingCreateRequest res,
             @AuthenticationPrincipal String useruuid) {
 
-        meetingService.createMeetingWithVersion(res, useruuid);
+        meetingService.createMeeting(res, useruuid);
 
         System.out.println("会议创建成功：" + useruuid);
         return ResponseEntity.ok(ApiResponse.success(200, "会议创建成功", null));
     }
 
-    // 更新会议（仅公司身份可访问）
+    // 更新会议
     @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/update")
     public ResponseEntity<ApiResponse<Void>> updateMeeting(
             @RequestBody MeetingUpdateRequest res,
             @AuthenticationPrincipal String useruuid) {
-        meetingService.updateMeetingWithVersion(res, useruuid);
+        meetingService.updateMeeting(res, useruuid);
 
         System.out.println("会议更新成功：" + useruuid);
         return ResponseEntity.ok(ApiResponse.success(200, "会议更新成功", null));
@@ -160,5 +160,6 @@ public class RootMeetingController {
         meetingPartService.reviewpart(req);
         return ResponseEntity.ok(ApiResponse.success(200, "审核完成", null));
     }
+
 
 }
