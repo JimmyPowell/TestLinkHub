@@ -6,6 +6,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tech.cspioneer.backend.entity.User;
+import tech.cspioneer.backend.entity.dto.request.*;
 import tech.cspioneer.backend.exception.LessonServiceException;
 import tech.cspioneer.backend.mapper.UserMapper;
 import tech.cspioneer.backend.model.response.ApiResponse;
@@ -27,10 +28,19 @@ public class AdminLessonController {
     private UserMapper userMapper;
 
     @PostMapping("/admin/lesson/upload")
-    public ResponseEntity<ApiResponse<Void>> uploadLesson(@RequestBody Map<String, Object> lessonRequestBody,
+    public ResponseEntity<ApiResponse<Void>> uploadLesson(@RequestBody LessonUploadRequest lessonUploadRequest,
                                                           @AuthenticationPrincipal String userUuid,
                                                           Authentication authentication) {
         try {
+            Map<String, Object> lessonRequestBody = new HashMap<>();
+            lessonRequestBody.put("name", lessonUploadRequest.getName());
+            lessonRequestBody.put("imageUrl", lessonUploadRequest.getImageUrl());
+            lessonRequestBody.put("description", lessonUploadRequest.getDescription());
+            lessonRequestBody.put("authorName", lessonUploadRequest.getAuthorName());
+            lessonRequestBody.put("resourcesType", lessonUploadRequest.getResourcesType());
+            lessonRequestBody.put("resourcesUrls", lessonUploadRequest.getResourcesUrls());
+            lessonRequestBody.put("sortOrders", lessonUploadRequest.getSortOrders());
+            
             if (authentication != null && authentication.isAuthenticated()) {
                 String identity = authentication.getAuthorities().stream()
                         .findFirst()
@@ -53,7 +63,7 @@ public class AdminLessonController {
 
     @PutMapping("/admin/lesson/update")
     public ResponseEntity<?> updateLesson(@RequestParam(value = "uuid", required = false) String uuid,
-                                          @RequestBody Map<String, Object> lessonRequestBody,
+                                          @RequestBody LessonUpdateRequest lessonUpdateRequest,
                                           @AuthenticationPrincipal String userUuid,
                                           Authentication authentication) {
         String identity = "UNKNOWN";
@@ -69,8 +79,18 @@ public class AdminLessonController {
         if ("USER".equals(identity)) {
             return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
         }
+        
+        Map<String, Object> lessonRequestBody = new HashMap<>();
+        lessonRequestBody.put("name", lessonUpdateRequest.getName());
+        lessonRequestBody.put("imageUrl", lessonUpdateRequest.getImageUrl());
+        lessonRequestBody.put("description", lessonUpdateRequest.getDescription());
+        lessonRequestBody.put("authorName", lessonUpdateRequest.getAuthorName());
+        lessonRequestBody.put("resourcesType", lessonUpdateRequest.getResourcesType());
+        lessonRequestBody.put("resourcesUrls", lessonUpdateRequest.getResourcesUrls());
+        lessonRequestBody.put("sortOrders", lessonUpdateRequest.getSortOrders());
         lessonRequestBody.put("identity", identity);
         lessonRequestBody.put("userId", userUuid);
+        
         try {
             int result = lessonService.updateLesson(uuid, lessonRequestBody);
             if (result == -1) {
@@ -113,9 +133,9 @@ public class AdminLessonController {
     }
 
     @GetMapping("/root/lesson/review/history")
-    public ResponseEntity<?> getLessonReviewHistory(@RequestParam(value = "auditStatus", required = false) String auditStatus,
-                                                   @RequestParam(value = "beginTime", required = false) String beginTime,
-                                                   @RequestParam(value = "endTime", required = false) String endTime,
+    public ResponseEntity<?> getLessonReviewHistory(@RequestParam(value = "audit_status", required = false) String auditStatus,
+                                                   @RequestParam(value = "begin_time", required = false) String beginTime,
+                                                   @RequestParam(value = "end_time", required = false) String endTime,
                                                    @RequestParam(value = "page", defaultValue = "0") int page,
                                                    @RequestParam(value = "size", defaultValue = "10") int size,
                                                    @AuthenticationPrincipal String userUuid,
@@ -136,7 +156,7 @@ public class AdminLessonController {
 
     @PostMapping("/root/lesson/review/approval")
     public ResponseEntity<?> approveLesson(@RequestParam String uuid,
-                                           @RequestBody Map<String, Object> approvalBody,
+                                           @RequestBody LessonApprovalRequest approvalRequest,
                                            @AuthenticationPrincipal String userUuid,
                                            Authentication authentication) {
         // 权限校验：只有ADMIN能访问
@@ -156,7 +176,12 @@ public class AdminLessonController {
             User user = userMapper.findByUuid(userUuid);
             if (user != null) auditorId = user.getId();
         }
+        
+        Map<String, Object> approvalBody = new HashMap<>();
+        approvalBody.put("auditStatus", approvalRequest.getAuditStatus());
+        approvalBody.put("comment", approvalRequest.getComment());
         approvalBody.put("auditorId", auditorId);
+        
         int result = lessonService.approveLesson(uuid, approvalBody);
         if (result == 1) {
             return ResponseEntity.ok(ApiResponse.success(200, "审批操作成功", null));

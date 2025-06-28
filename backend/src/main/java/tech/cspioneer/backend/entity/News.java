@@ -19,8 +19,8 @@ public class News {
     private Long companyId;
     private int visible;
     private NewsStatus status;
-    private Long currentContendId;
-    private Long pendingContendId;
+    private Long currentContentId;
+    private Long pendingContentId;
     private int isDeleted;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
