@@ -18,7 +18,7 @@ import tech.cspioneer.backend.service.NewsService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/client/news") 
+@RequestMapping("/api/user/news")
 @RequiredArgsConstructor
 public class ClientNewsController{
     @Autowired

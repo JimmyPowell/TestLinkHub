@@ -1,7 +1,8 @@
 package tech.cspioneer.backend.service.impl;
 
-import io.netty.util.Constant;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tech.cspioneer.backend.entity.*;
@@ -39,7 +40,7 @@ public class NewsServiceImpl implements NewsService {
     private NewsAuditHistoryMapper newsAuditHistoryMapper;
     @Autowired
     private NotificationService notificationService;
-
+    Logger logger = LoggerFactory.getLogger(NewsServiceImpl.class);
     @Override
     public int uploadNews(NewsUploadRequest request) {
         News news = new News();
@@ -63,6 +64,7 @@ public class NewsServiceImpl implements NewsService {
             newsContent.setResourceUrl(request.getResourceUrl());
             newsContent.setVersion(1);
             newsContent.setStatus(NewsContentStatus.pending);
+            newsContent.setPublisherId(checkCompany.getId());
             newsContentMapper.insert(newsContent);
             news.setPendingContentId(newsContent.getId());
             newsMapper.update(news);
@@ -109,6 +111,7 @@ public class NewsServiceImpl implements NewsService {
                 throw new NewsServiceException("无权限修改此新闻");
             }
             NewsContent newsContent = new NewsContent();
+            newsContent.setNewsId(news.getId());
             newsContent.setStatus(NewsContentStatus.pending);
             newsContent.setUuid(UuidUtils.randomUuid());
             newsContent.setTitle(request.getTitle());
@@ -117,6 +120,7 @@ public class NewsServiceImpl implements NewsService {
             newsContent.setIsDeleted(0);
             newsContent.setResourceUrl(request.getResourceUrl());
             newsContent.setVersion(newsContentMapper.getMaxVersionByNewsId(news.getId())+1);
+            newsContent.setPublisherId(company.getId());
             newsContentMapper.insert(newsContent);
             news.setPendingContentId(newsContent.getId());
             news.setStatus(NewsStatus.pending);
@@ -124,6 +128,7 @@ public class NewsServiceImpl implements NewsService {
         }else if (request.getIdentity().equals("ADMIN")){
             User admin = userMapper.findByUuid(request.getUserUUid());
             NewsContent newsContent = new NewsContent();
+            newsContent.setNewsId(news.getId());
             newsContent.setStatus(NewsContentStatus.published);
             newsContent.setUuid(UuidUtils.randomUuid());
             newsContent.setTitle(request.getTitle());
@@ -132,6 +137,7 @@ public class NewsServiceImpl implements NewsService {
             newsContent.setIsDeleted(0);
             newsContent.setResourceUrl(request.getResourceUrl());
             newsContent.setVersion(newsContentMapper.getMaxVersionByNewsId(news.getId())+1);
+            newsContent.setPublisherId(admin.getId());
             newsContentMapper.insert(newsContent);
             news.setCurrentContentId(newsContent.getId());
             news.setStatus(NewsStatus.published);
@@ -158,8 +164,8 @@ public class NewsServiceImpl implements NewsService {
         if (identity.equals("ADMIN")){
             User admin = userMapper.findByUuid(userUuid);
         }else if (identity.equals("COMPANY")){
-            Company company = companyMapper.findByUuid(uuid);
-            notificationService.sendSystemNotificationToUser(company.getId(),"您的新闻已被删除","您的新闻以及被管理员删除", RelatedObjectType.COMPANY, company.getId());
+            Company company = companyMapper.findByUuid(userUuid);
+            notificationService.sendSystemNotificationToCompany(company.getId(),"您的新闻已被删除","您的新闻以及被管理员删除", RelatedObjectType.COMPANY, company.getId());
         }else {
             return -1;
         }
@@ -203,18 +209,19 @@ public class NewsServiceImpl implements NewsService {
     @Override
     public List<NewsListResponse> getNewsList(NewsQueryRequest request) {
         NewsListQuery newsListQuery = CopyTools.copy(request,NewsListQuery.class);
+        int offset = (request.getPage() - 1) * request.getPageSize();
         List<NewsListResponse> newsListResponses;
         switch (request.getIdentity()) {
-            case "ADMIN" -> newsListResponses = newsMapper.findNewsList(newsListQuery);
+            case "ADMIN" -> newsListResponses = newsMapper.findNewsList(newsListQuery,offset);
             case "COMPANY" -> {
                 newsListQuery.setCompanyUuid(request.getUserUuid());
-                newsListResponses = newsMapper.findNewsList(newsListQuery);
+                newsListResponses = newsMapper.findNewsList(newsListQuery,offset);
             }
             case "USER" -> {
                 User user = userMapper.findByUuid(request.getUserUuid());
                 Company company = companyMapper.findById(user.getId());
                 newsListQuery.setCompanyUuid(company.getUuid());
-                newsListResponses = newsMapper.findNewsList(newsListQuery);
+                newsListResponses = newsMapper.findNewsList(newsListQuery,offset);
             }
             default -> throw new NewsServiceException("登陆状态异常");
         }

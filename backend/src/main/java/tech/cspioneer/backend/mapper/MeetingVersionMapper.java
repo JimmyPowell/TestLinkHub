@@ -71,22 +71,17 @@ public interface MeetingVersionMapper {
     @Select("SELECT * FROM meeting_version WHERE status = 'pending_review' AND is_deleted = 0 ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
     List<MeetingVersion> findPendingList(@Param("offset") int offset, @Param("size") int size);
 
-    @Select("""
-    SELECT * FROM meeting_version
-    WHERE meeting_id IN (
-        <foreach collection='meetingIds' item='id' open='' separator=',' close=''>
-            #{id}
-        </foreach>
-    )
-    AND is_deleted = 0
-    ORDER BY created_at DESC
-    LIMIT #{limit} OFFSET #{offset}
-""")
-    List<MeetingVersion> findVersionsByMeetingIds(
-            @Param("meetingIds") List<Long> meetingIds,
-            @Param("limit") int limit,
-            @Param("offset") int offset
-    );
+    @Select({
+            "<script>",
+            "SELECT * FROM meeting_version WHERE meeting_id IN",
+            "<foreach collection='meetingIds' item='id' open='(' separator=',' close=')'>",
+            "#{id}",
+            "</foreach>",
+            "AND is_deleted = 0",
+            "</script>"
+    })
+    List<MeetingVersion> findVersionsByMeetingIds(@Param("meetingIds") List<Long> meetingIds);
+
 
 
 
