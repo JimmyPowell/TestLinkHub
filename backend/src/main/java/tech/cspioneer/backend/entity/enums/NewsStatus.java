@@ -1,7 +1,11 @@
 package tech.cspioneer.backend.entity.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum NewsStatus {
     pending,
     published,
-    archived
+    archived;
+    private String message;
 }

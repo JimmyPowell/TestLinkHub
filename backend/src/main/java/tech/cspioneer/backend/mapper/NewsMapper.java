@@ -17,11 +17,9 @@ public interface NewsMapper {
     // 插入新闻并返回自增ID
     @Insert({
             "INSERT INTO news (uuid, company_id, visible, status, ",
-            "current_content_id, pending_content_id, is_deleted, ",
-            "created_at, updated_at) ",
+            "current_content_id, pending_content_id, is_deleted) ",
             "VALUES (#{uuid}, #{companyId}, #{visible}, #{status}, ",
-            "#{currentContentId}, #{pendingContentId}, #{isDeleted}, ",
-            "#{createdAt}, #{updatedAt})"
+            "#{currentContentId}, #{pendingContentId}, #{isDeleted}) ",
     })
     @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
     int insert(News news);
@@ -173,10 +171,10 @@ public interface NewsMapper {
             "   AND n.created_at <![CDATA[ <= ]]> #{query.endTime} ",
             "</if>",
             "ORDER BY n.created_at DESC ",
-            "LIMIT #{query.pageSize} OFFSET #{query.pageSize} * (#{query.page} - 1)",
+            "LIMIT #{query.pageSize} OFFSET #{offset}",
             "</script>"
     })
-    List<NewsListResponse> findNewsList(@Param("query") NewsListQuery query);
+    List<NewsListResponse> findNewsList(@Param("query") NewsListQuery query,@Param("offset") int offset);
 
     // 查询待审核新闻列表
     @Select({
@@ -188,7 +186,7 @@ public interface NewsMapper {
             "WHERE n.is_deleted = 0 AND nc.is_deleted = 0 ",
             "AND n.status = 'pending' ",
             "ORDER BY n.created_at DESC ",
-            "LIMIT #{pageSize} OFFSET #{pageSize} * (#{page} - 1)"
+            "LIMIT #{pageSize} OFFSET (#{pageSize} * (#{page} - 1))"
     })
     List<NewsAuditListResponse> findPendingNewsList(
             @Param("page") int page,

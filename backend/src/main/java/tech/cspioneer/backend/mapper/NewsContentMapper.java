@@ -13,10 +13,10 @@ public interface NewsContentMapper {
     @Insert({
             "INSERT INTO news_content (uuid, news_id, title, summary, ",
             "cover_image_url, resource_url, version, status, ",
-            "publisher_id, is_deleted, created_at) ",
+            "publisher_id, is_deleted) ",
             "VALUES (#{uuid}, #{newsId}, #{title}, #{summary}, ",
             "#{coverImageUrl}, #{resourceUrl}, #{version}, #{status}, ",
-            "#{publisherId}, #{isDeleted}, #{createdAt})"
+            "#{publisherId}, #{isDeleted})"
     })
     @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
     int insert(NewsContent newsContent);
