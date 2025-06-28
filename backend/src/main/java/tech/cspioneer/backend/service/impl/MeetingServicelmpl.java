@@ -13,9 +13,11 @@ import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.exception.ResourceNotFoundException;
 import tech.cspioneer.backend.mapper.*;
 import tech.cspioneer.backend.service.MeetingService;
+import tech.cspioneer.backend.service.UserService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -259,4 +261,42 @@ public class MeetingServicelmpl implements MeetingService {
 
         return versions.subList(fromIndex, toIndex);
     }
+
+    @Override
+    public List<MeetingVersion> getMeetingVersionsByCreator(String creatorUuid, int page, int size) {
+        User user = userMapper.findByUuid(creatorUuid);
+        Long creatorId = user.getId();
+
+        // 2. 查找 meeting 表中 creator_id = 当前用户 的会议
+        List<Long> meetingIds = meetingMapper.findMeetingIdsByCreatorId(creatorId);
+
+        if (meetingIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 3. 再查 meeting_version 中 meeting_id ∈ 上面ID 的所有版本，按创建时间或状态排序
+        return meetingVersionMapper.findVersionsByMeetingIds(meetingIds, page, size);
+    }
+
+    @Override
+    public MeetingVersion getMeetingVersionDetail(String versionUuid, String userUuid) {
+        // 1. 获取当前版本
+        MeetingVersion version = meetingVersionMapper.findByUuid(versionUuid);
+        if (version == null || version.getIsDeleted() == 1) return null;
+
+        // 2. 获取该会议的主记录
+        Meeting meeting = meetingMapper.findById(version.getMeetingId());
+        if (meeting == null || meeting.getIsDeleted() == 1) return null;
+
+        // 3. 获取当前用户是否为会议创建人
+        User user = userMapper.findByUuid(userUuid);
+        Long userId = user.getId();
+        if (!meeting.getCreatorId().equals(userId)) {
+            return null;
+        }
+
+        return version;
+    }
+
+
 }

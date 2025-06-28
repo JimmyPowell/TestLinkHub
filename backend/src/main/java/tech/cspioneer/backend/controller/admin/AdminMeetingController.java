@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import tech.cspioneer.backend.entity.Company;
 import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingParticipant;
+import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
@@ -127,6 +128,32 @@ public class AdminMeetingController {
         return ResponseEntity.ok(ApiResponse.success(200, "审核完成", null));
     }
 
+
+    //获取会议创建/修改列表
+    @PreAuthorize("hasAuthority('COMPANY')")
+    @GetMapping("/version/application/list")
+    public ResponseEntity<ApiResponse<List<MeetingVersion>>> getCreatedMeetingVersions(
+            @AuthenticationPrincipal String useruuid,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        List<MeetingVersion> versions = meetingService.getMeetingVersionsByCreator(useruuid, page, size);
+        return ResponseEntity.ok(ApiResponse.success(200, "获取创建的会议版本成功", versions));
+    }
+
+    @PreAuthorize("hasAuthority('COMPANY')")
+    @GetMapping("/version/detail")
+    public ResponseEntity<ApiResponse<MeetingVersion>> getMeetingVersionDetail(
+            @RequestParam String uuid,
+            @AuthenticationPrincipal String useruuid) {
+
+        MeetingVersion version = meetingService.getMeetingVersionDetail(uuid, useruuid);
+        if (version == null) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "无权限查看该会议版本"));
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(200, "获取会议版本详情成功", version));
+    }
 
 
 }

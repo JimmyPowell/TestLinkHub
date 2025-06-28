@@ -30,4 +30,9 @@ public interface MeetingService {
     List<MeetingVersion> getPublishedMeetings(int page, int size);
 
     MeetingVersion getMeetingDetails(String meetingUuid);
+
+    public List<MeetingVersion> getMeetingVersionsByCreator(String creatorUuid, int page, int size);
+    public MeetingVersion getMeetingVersionDetail(String versionUuid, String userUuid);
+
+
 }

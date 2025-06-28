@@ -59,4 +59,11 @@ public interface MeetingMapper {
     List<Meeting> findPublishedMeetings();
 
 
+    //获取指定创建人的所有会议 ID 列表
+    @Select("""
+    SELECT id FROM meeting
+    WHERE creator_id = #{creatorId} AND is_deleted = 0
+""")
+    List<Long> findMeetingIdsByCreatorId(@Param("creatorId") Long creatorId);
+
 }
