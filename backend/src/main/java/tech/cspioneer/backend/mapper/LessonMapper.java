@@ -22,7 +22,7 @@ public interface LessonMapper {
     @Select({
         "<script>",
         "SELECT",
-        "  v.uuid AS uuid,",
+        "  l.uuid AS uuid,",
         "  v.name AS name,",
         "  v.image_url AS image_url,",
         "  v.description AS description,",
@@ -54,7 +54,7 @@ public interface LessonMapper {
     @Select({
         "<script>",
         "SELECT",
-        "  v.uuid AS uuid,",
+        "  l.uuid AS uuid,",
         "  v.name AS name,",
         "  v.image_url AS image_url,",
         "  v.description AS description,",
@@ -92,7 +92,7 @@ public interface LessonMapper {
     @Select({
         "<script>",
         "SELECT",
-        "  v.uuid AS uuid,",
+        "  l.uuid AS uuid,",
         "  v.name AS name,",
         "  v.image_url AS imageUrl,",
         "  v.description AS description,",
@@ -115,7 +115,7 @@ public interface LessonMapper {
     @Select({
         "<script>",
         "SELECT",
-        "  v.uuid AS uuid,",
+        "  l.uuid AS uuid,",
         "  v.name AS name,",
         "  v.image_url AS imageUrl,",
         "  v.description AS description,",
