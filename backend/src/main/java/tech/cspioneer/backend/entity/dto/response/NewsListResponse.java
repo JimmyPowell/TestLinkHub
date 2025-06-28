@@ -38,4 +38,8 @@ public class NewsListResponse {
      * 新闻内容版本唯一标识符
      */
     private String uuid;
+    /**
+     * 新闻状态
+     */
+    private String status;
 }

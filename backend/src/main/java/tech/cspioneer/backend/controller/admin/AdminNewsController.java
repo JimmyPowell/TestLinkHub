@@ -14,10 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import tech.cspioneer.backend.entity.dto.request.NewsAuditReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.NewsUploadRequest;
 import tech.cspioneer.backend.entity.dto.request.NewsUpdateRequest;
-import tech.cspioneer.backend.entity.dto.response.NewsAuditDetailResponse;
-import tech.cspioneer.backend.entity.dto.response.NewsAuditListResponse;
-import tech.cspioneer.backend.entity.dto.response.NewsHistoryResponse;
-import tech.cspioneer.backend.entity.dto.response.NewsListResponse;
+import tech.cspioneer.backend.entity.dto.response.*;
 import tech.cspioneer.backend.exception.LessonServiceException;
 import tech.cspioneer.backend.exception.NewsServiceException;
 import tech.cspioneer.backend.model.response.ApiResponse;
@@ -110,6 +107,40 @@ public class AdminNewsController{
                 .map(authority -> authority.getAuthority())
                 .orElse("UNKNOWN");
         List<NewsListResponse> newsListResponses = newsService.getAllNews(page, pageSize, userUuid, identity);
+        return ResponseEntity.ok(ApiResponse.success(newsListResponses));
+    }
+
+    @GetMapping("/admin/news/detail/{uuid}")
+    @PreAuthorize("hasAnyAuthority('COMPANY','ADMIN')")
+    public ResponseEntity<ApiResponse<NewsDetailResponse>> getNewsDetailForAdmin(@PathVariable String uuid) {
+        NewsDetailResponse response = newsService.getNewsDetailForAdmin(uuid);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/admin/news/list")
+    @PreAuthorize("hasAnyAuthority('COMPANY','ADMIN')")
+    public ResponseEntity<ApiResponse<?>> getNewsList(@RequestBody tech.cspioneer.backend.entity.dto.request.NewsQueryRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userUuid = (String) authentication.getPrincipal();
+        // 获取用户身份/角色
+        String identity = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(authority -> authority.getAuthority())
+                .orElse("UNKNOWN");
+        
+        // 设置用户信息
+        request.setUserUuid(userUuid);
+        request.setIdentity(identity);
+        
+        // 设置默认分页参数
+        if (request.getPage() == null || request.getPage() <= 0) {
+            request.setPage(1);
+        }
+        if (request.getPageSize() == null || request.getPageSize() <= 0) {
+            request.setPageSize(10);
+        }
+        
+        List<NewsListResponse> newsListResponses = newsService.getNewsList(request);
         return ResponseEntity.ok(ApiResponse.success(newsListResponses));
     }
 

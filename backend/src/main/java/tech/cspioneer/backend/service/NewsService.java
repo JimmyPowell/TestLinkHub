@@ -16,6 +16,8 @@ public interface NewsService {
     List<NewsListResponse> getNewsList(NewsQueryRequest request);
     List<NewsListResponse> getAllNews(Integer page, Integer pageSize, String userUuid, String identity);
 
+    NewsDetailResponse getNewsDetailForAdmin(String uuid);
+
     List<NewsAuditListResponse> getNewsAuditList(int page, int pageSize, String adminUuid);
 
     NewsAuditDetailResponse getNewsAuditDetail(String uuid);

@@ -36,6 +36,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     @Transactional
     public int uploadLesson(Map<String, Object> lessonRequestBody) {
+        System.out.println("uploadLesson called with: " + lessonRequestBody);
         String identity = (String) lessonRequestBody.get("identity");
         String uuid = (String) lessonRequestBody.get("userId");
         try {
@@ -47,13 +48,13 @@ public class LessonServiceImpl implements LessonService {
                 List<String> tmp = (List<String>) resourcesUrlsObj;
                 resourcesUrls = tmp;
             }
-
+            
             String resourcesType = (String) lessonRequestBody.get("resourcesType");
             // 验证resourcesType是否为有效值
             if (resourcesType != null && !isValidResourceType(resourcesType)) {
                 throw new LessonServiceException("无效的资源类型: " + resourcesType + "，允许的类型: video, audio, document, image, link, other");
             }
-
+            
             List<Integer> sortOrders = null;
             Object sortOrdersObj = lessonRequestBody.get("sortOrders");
             if (sortOrdersObj instanceof List<?>) {
@@ -61,7 +62,7 @@ public class LessonServiceImpl implements LessonService {
                 List<Integer> tmp = (List<Integer>) sortOrdersObj;
                 sortOrders = tmp;
             }
-
+            
             // 2. 创建课程版本
             LessonVersion version = new LessonVersion();
             version.setUuid(UUID.randomUUID().toString());
@@ -74,14 +75,14 @@ public class LessonServiceImpl implements LessonService {
             version.setSortOrder(0);
             version.setIsDeleted(0);
             version.setCreatedAt(LocalDateTime.now());
-
+            
             // 业务分流：管理员 or 企业用户
             Lesson lesson = new Lesson();
             lesson.setUuid(UUID.randomUUID().toString());
             lesson.setIsDeleted(0);
             lesson.setCreatedAt(LocalDateTime.now());
             lesson.setUpdatedAt(LocalDateTime.now());
-
+            
             if ("COMPANY".equals(identity)) {
                 Company company = companyMapper.findByUuid(uuid);
                 lesson.setPublisherId(company.getId());
@@ -115,7 +116,7 @@ public class LessonServiceImpl implements LessonService {
             } else {
                 return -1; // 其他身份不允许
             }
-
+            
             // 3. 处理资源 - 使用新的数据结构
             if (resourcesUrls != null && !resourcesUrls.isEmpty()) {
                 for (int i = 0; i < resourcesUrls.size(); i++) {
@@ -217,13 +218,13 @@ public class LessonServiceImpl implements LessonService {
             List<String> tmp = (List<String>) resourcesUrlsObj;
             resourcesUrls = tmp;
         }
-
+        
         String resourcesType = (String) lessonRequestBody.get("resourcesType");
         // 验证resourcesType是否为有效值
         if (resourcesType != null && !isValidResourceType(resourcesType)) {
             throw new LessonServiceException("无效的资源类型: " + resourcesType + "，允许的类型: video, audio, document, image, link, other");
         }
-
+        
         List<Integer> sortOrders = null;
         Object sortOrdersObj = lessonRequestBody.get("sortOrders");
         if (sortOrdersObj instanceof List<?>) {
@@ -231,7 +232,7 @@ public class LessonServiceImpl implements LessonService {
             List<Integer> tmp = (List<Integer>) sortOrdersObj;
             sortOrders = tmp;
         }
-
+        
         if (resourcesUrls != null && !resourcesUrls.isEmpty()) {
             for (int i = 0; i < resourcesUrls.size(); i++) {
                 LessonResources resource = new LessonResources();
@@ -492,7 +493,11 @@ public class LessonServiceImpl implements LessonService {
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+    
+>>>>>>> ce3ad80 (feat(frontend):修复了前端逻辑)
     /**
      * 验证资源类型是否为数据库ENUM允许的值
      * @param resourceType 资源类型
@@ -501,13 +506,18 @@ public class LessonServiceImpl implements LessonService {
 >>>>>>> 147e9a5 (feat(backend):合并分支)
     private boolean isValidResourceType(String resourceType) {
         if (resourceType == null) return false;
-        return resourceType.equals("video") ||
-                resourceType.equals("audio") ||
-                resourceType.equals("document") ||
-                resourceType.equals("image") ||
-                resourceType.equals("link") ||
-                resourceType.equals("other");
+        return resourceType.equals("video") || 
+               resourceType.equals("audio") || 
+               resourceType.equals("document") || 
+               resourceType.equals("image") || 
+               resourceType.equals("link") || 
+               resourceType.equals("other");
     }
+<<<<<<< HEAD
+=======
+} 
+
+>>>>>>> ce3ad80 (feat(frontend):修复了前端逻辑)
 
     // 新增：公司待审核课程概览
     public Map<String, Object> getPendingReviewLessonsOverview(String name, String status, String lessonUuid, String companyUuid, int page, int size) {

@@ -101,12 +101,20 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public int updateNews(String uuid, NewsUpdateRequest request) {
+        logger.info("Attempting to update news with UUID: {}", uuid);
+        logger.info("Request body: {}", request.toString());
+
         News news = newsMapper.findByUuid(uuid);
         if (news == null){
+            logger.error("News not found for UUID: {}", uuid);
             throw new NewsServiceException("编辑新闻不存在");
         }
+        logger.info("Found news to update: {}", news.toString());
         if (request.getIdentity().equals("COMPANY")){
             Company company = companyMapper.findByUuid(request.getUserUUid());
+            if (company == null) {
+                throw new NewsServiceException("操作用户不存在");
+            }
             if (!company.getId().equals(news.getCompanyId())){
                 throw new NewsServiceException("无权限修改此新闻");
             }
@@ -127,6 +135,9 @@ public class NewsServiceImpl implements NewsService {
             newsMapper.update(news);
         }else if (request.getIdentity().equals("ADMIN")){
             User admin = userMapper.findByUuid(request.getUserUUid());
+            if (admin == null) {
+                throw new NewsServiceException("操作的管理员用户不存在");
+            }
             NewsContent newsContent = new NewsContent();
             newsContent.setNewsId(news.getId());
             newsContent.setStatus(NewsContentStatus.published);
@@ -162,9 +173,15 @@ public class NewsServiceImpl implements NewsService {
             throw new NewsServiceException("新闻不存在");
         }
         if (identity.equals("ADMIN")){
+            // 管理员有权删除任何新闻，此处可以添加日志记录等
             User admin = userMapper.findByUuid(userUuid);
+            logger.info("新闻 '{}' (UUID: {}) 被管理员 '{}' (UUID: {}) 删除。", news.getUuid(), admin.getName(), admin.getUuid());
         }else if (identity.equals("COMPANY")){
             Company company = companyMapper.findByUuid(userUuid);
+            // 权限校验：确保操作者是新闻的所有者
+            if (!news.getCompanyId().equals(company.getId())) {
+                throw new NewsServiceException("无权限删除此新闻");
+            }
             notificationService.sendSystemNotificationToCompany(company.getId(),"您的新闻已被删除","您的新闻以及被管理员删除", RelatedObjectType.COMPANY, company.getId());
         }else {
             return -1;
@@ -228,12 +245,38 @@ public class NewsServiceImpl implements NewsService {
         return newsListResponses;
     }
 
+    @Override
+    public NewsDetailResponse getNewsDetailForAdmin(String uuid) {
+        News news = newsMapper.findByUuid(uuid);
+        if (news == null) {
+            throw new NewsServiceException("新闻不存在");
+        }
+
+        Long contentIdToFetch = news.getPendingContentId() != null ? news.getPendingContentId() : news.getCurrentContentId();
+
+        if (contentIdToFetch == null) {
+            throw new NewsServiceException("新闻内容不存在");
+        }
+
+        NewsContent newsContent = newsContentMapper.findById(contentIdToFetch);
+        if (newsContent == null) {
+            throw new NewsServiceException("新闻内容记录不存在");
+        }
+
+        NewsDetailResponse newsDetailResponse = CopyTools.copy(newsContent, NewsDetailResponse.class);
+        if (newsDetailResponse != null) {
+            newsDetailResponse.setContentCreatedAt(newsContent.getCreatedAt());
+            newsDetailResponse.setCompanyId(news.getCompanyId());
+        }
+
+        return newsDetailResponse;
+    }
 
     @Override
     public List<NewsListResponse> getAllNews(Integer page, Integer pageSize, String userUuid, String identity) {
         List<News> newsList;
         Long companyId = null;
-        
+
         if (identity.equals("ADMIN")) {
             // 管理员可以查看所有新闻
             int offset = (page - 1) * pageSize;
@@ -247,18 +290,36 @@ public class NewsServiceImpl implements NewsService {
         } else {
             throw new NewsServiceException("无效的用户身份");
         }
+
         return newsList.stream().map(news -> {
             NewsListResponse response = new NewsListResponse();
             response.setUuid(news.getUuid());
             response.setCompanyId(news.getCompanyId());
             response.setCreatedAt(news.getCreatedAt());
-            // 获取新闻内容摘要
-            NewsContent content = newsContentMapper.findById(news.getCurrentContentId());
-            if (content != null) {
-                response.setTitle(content.getTitle());
-                response.setSummary(content.getSummary());
-                response.setCoverImageUrl(content.getCoverImageUrl());
+
+            // 决定使用哪个 content_id
+            Long contentIdToFetch = null;
+            // 对于管理员列表，我们总是想看到最新的内容，无论是待审核还是已发布
+            if (news.getPendingContentId() != null) {
+                contentIdToFetch = news.getPendingContentId(); // 优先展示待审核版本
+            } else {
+                contentIdToFetch = news.getCurrentContentId(); // 否则展示当前已发布版本
             }
+
+            // 获取新闻内容摘要
+            if (contentIdToFetch != null) {
+                NewsContent content = newsContentMapper.findById(contentIdToFetch);
+                if (content != null) {
+                    response.setTitle(content.getTitle());
+                    response.setSummary(content.getSummary());
+                    response.setCoverImageUrl(content.getCoverImageUrl());
+                    response.setContentCreatedAt(content.getCreatedAt().toString());
+                }
+            }
+            
+            // 设置新闻状态
+            response.setStatus(news.getStatus().toString());
+
             return response;
         }).collect(Collectors.toList());
     }

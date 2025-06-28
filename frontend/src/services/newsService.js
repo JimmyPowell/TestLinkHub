@@ -1,69 +1,51 @@
-import apiClient from './api';
+import api from './api';
 
-/**
- * 获取新闻列表
- * @param {Object} params - 查询参数
- * @returns {Promise} 返回Promise对象
- */
-export const getNewsList = (params = {}) => {
-  return apiClient.get('/news/list', { params });
+// 获取所有新闻（管理员/公司）
+export const getAllNews = (params) => {
+  return api.get('/admin/news/all', { params });
 };
 
-/**
- * 获取新闻详情
- * @param {string} uuid - 新闻UUID
- * @returns {Promise} 返回Promise对象
- */
-export const getNewsDetail = (uuid) => {
-  return apiClient.get(`/news/${uuid}`);
+// 根据条件查询新闻列表
+export const getNewsList = (params) => {
+  return api.post('/admin/news/list', params);
 };
 
-/**
- * 创建新闻
- * @param {Object} newsData - 新闻数据
- * @returns {Promise} 返回Promise对象
- */
-export const createNews = (newsData) => {
-  return apiClient.post('/news/create', newsData);
+// 上传/创建新闻
+export const uploadNews = (data) => {
+  return api.post('/admin/news/upload', data);
 };
 
-/**
- * 更新新闻
- * @param {string} uuid - 新闻UUID
- * @param {Object} newsData - 新闻数据
- * @returns {Promise} 返回Promise对象
- */
-export const updateNews = (uuid, newsData) => {
-  return apiClient.put(`/news/${uuid}`, newsData);
+// 更新新闻
+export const updateNews = (uuid, data) => {
+  return api.put(`/admin/news/update/${uuid}`, data);
 };
 
-/**
- * 删除新闻
- * @param {string} uuid - 新闻UUID
- * @returns {Promise} 返回Promise对象
- */
+// 删除新闻
 export const deleteNews = (uuid) => {
-  return apiClient.delete(`/news/${uuid}`);
+  return api.put(`/admin/news/delete/${uuid}`);
 };
 
-/**
- * 上传新闻图片
- * @param {FormData} formData - 包含图片的FormData对象
- * @returns {Promise} 返回Promise对象
- */
-export const uploadNewsImage = (formData) => {
-  return apiClient.post('/upload/image', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
+// 获取新闻详情 (管理员)
+export const getAdminNewsDetail = (uuid) => {
+  return api.get(`/admin/news/detail/${uuid}`);
 };
 
-export default {
-  getNewsList,
-  getNewsDetail,
-  createNews,
-  updateNews,
-  deleteNews,
-  uploadNewsImage
-}; 
+// 获取待审核新闻列表
+export const getNewsForAudit = (params) => {
+  return api.get('/root/news/audit', { params });
+};
+
+// 获取待审核新闻详情
+export const getNewsAuditDetail = (uuid) => {
+  return api.get(`/root/news/auditDetail/${uuid}`);
+};
+
+// 审核新闻
+export const auditNews = (uuid, data) => {
+  return api.post(`/root/news/auditNews/${uuid}`, data);
+};
+
+// 获取新闻审核历史
+export const getNewsAuditHistory = (uuid) => {
+  return api.get(`/admin/news/auditHistoryList/${uuid}`);
+};

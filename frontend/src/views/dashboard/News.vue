@@ -19,7 +19,10 @@
           ></el-date-picker>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleSearch">查询</el-button>
+        </el-form-item>
+        <el-form-item>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleAddNews">新增</el-button>
@@ -33,7 +36,7 @@
         <div class="news-content">
           <div class="news-image">
             <el-image 
-              :src="item.imageUrl || 'https://via.placeholder.com/200x120'"
+              :src="item.cover_image_url || 'https://via.placeholder.com/200x120'"
               fit="cover"
               style="width: 200px; height: 120px"
             >
@@ -45,10 +48,13 @@
             </el-image>
           </div>
           <div class="news-info">
-            <h3 class="news-title">{{ item.title }}</h3>
-            <p class="news-desc">{{ item.description }}</p>
+            <div class="news-title-line">
+              <h3 class="news-title">{{ item.title }}</h3>
+              <el-tag :type="getStatusTagType(item.status)" size="small">{{ item.status }}</el-tag>
+            </div>
+            <p class="news-desc">{{ item.summary }}</p>
             <div class="news-meta">
-              <span>发布于：{{ item.publishDate }}</span>
+              <span>发布于：{{ formatDateTime(item.created_at) }}</span>
             </div>
           </div>
         </div>
@@ -63,66 +69,104 @@
       <el-empty v-if="newsList.length === 0" description="暂无数据"></el-empty>
     </div>
 
-    <!-- 新增/编辑新闻对话框 -->
-    <el-dialog 
-      :title="dialogType === 'add' ? '新增新闻' : '编辑新闻'" 
-      v-model="dialogVisible" 
-      width="60%"
+    <!-- 新增/编辑新闻抽屉 -->
+    <el-drawer
+      v-model="dialogVisible"
+      :title="dialogType === 'add' ? '新增新闻' : '编辑新闻'"
+      direction="rtl"
+      size="50%"
+      destroy-on-close
+      close-on-press-escape
+      :with-header="true"
+      :before-close="handleEditDrawerClose"
+      :close-on-click-modal="true"
+      :append-to-body="false"
+      modal-class="news-edit-drawer-modal"
     >
-      <el-form :model="newsForm" label-width="80px">
-        <el-form-item label="标题" required>
-          <el-input v-model="newsForm.title" placeholder="请输入新闻标题"></el-input>
-        </el-form-item>
-        <el-form-item label="内容" required>
-          <el-input
-            v-model="newsForm.content"
-            type="textarea"
-            :rows="6"
-            placeholder="请输入新闻内容"
-          ></el-input>
-        </el-form-item>
-        <el-form-item label="封面图">
-          <el-upload
-            action="/api/upload/image"
-            :show-file-list="false"
-            :on-success="handleUploadSuccess"
-            :before-upload="beforeUpload"
-          >
-            <el-button type="primary">点击上传</el-button>
-            <div class="el-upload__tip">只能上传jpg/png文件，且不超过2MB</div>
-          </el-upload>
-          <el-image
-            v-if="newsForm.imageUrl"
-            :src="newsForm.imageUrl"
-            fit="cover"
-            style="width: 200px; height: 120px; margin-top: 10px"
-          ></el-image>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSaveNews" :loading="saveLoading">确定</el-button>
-      </template>
-    </el-dialog>
-    
-    <!-- 新闻详情对话框 -->
-    <el-dialog 
-      title="新闻详情" 
-      v-model="viewDialogVisible" 
-      width="60%"
-    >
-      <div v-if="currentNews">
-        <h2>{{ currentNews.title }}</h2>
-        <p class="news-detail-meta">发布时间：{{ currentNews.publishDate }}</p>
-        <el-image
-          v-if="currentNews.imageUrl"
-          :src="currentNews.imageUrl"
-          fit="cover"
-          style="width: 100%; max-height: 300px; margin: 15px 0"
-        ></el-image>
-        <div class="news-detail-content">{{ currentNews.content }}</div>
+      <div class="edit-drawer-content">
+        <el-form :model="newsForm" label-width="80px">
+          <el-form-item label="标题" required>
+            <el-input v-model="newsForm.title" placeholder="请输入新闻标题"></el-input>
+          </el-form-item>
+          <el-form-item label="摘要" required>
+            <el-input
+              v-model="newsForm.summary"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入新闻摘要"
+            ></el-input>
+          </el-form-item>
+          <el-form-item label="正文" required>
+            <el-upload
+              :show-file-list="true"
+              :limit="1"
+              :http-request="handleContentUpload"
+              :before-upload="beforeContentUpload"
+              :on-remove="handleContentRemove"
+            >
+              <el-button type="primary">点击上传HTML文件</el-button>
+              <template #tip>
+                <div class="el-upload__tip">只能上传.html文件</div>
+              </template>
+            </el-upload>
+          </el-form-item>
+          <el-form-item label="封面图">
+            <div class="cover-image-uploader">
+              <el-image
+                v-if="newsForm.cover_image_url"
+                :src="newsForm.cover_image_url"
+                fit="cover"
+                style="width: 200px; height: 120px; margin-right: 20px;"
+              ></el-image>
+              <el-upload
+                :show-file-list="false"
+                :http-request="handleCustomUpload"
+                :before-upload="beforeUpload"
+              >
+                <el-button type="primary">点击上传</el-button>
+                <template #tip>
+                  <div class="el-upload__tip">只能上传jpg/png文件，且不超过2MB</div>
+                </template>
+              </el-upload>
+            </div>
+          </el-form-item>
+          <el-form-item>
+            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleSaveNews" :loading="saveLoading">确定</el-button>
+          </el-form-item>
+        </el-form>
       </div>
-    </el-dialog>
+    </el-drawer>
+    
+<!-- 新闻详情抽屉 -->
+<el-drawer
+  v-model="viewDialogVisible"
+  title="新闻详情"
+  direction="rtl"
+  size="50%"
+  destroy-on-close
+  close-on-press-escape
+  :with-header="true"
+  :before-close="handleDrawerClose"
+  :close-on-click-modal="true"
+  :append-to-body="false"
+  modal-class="news-detail-drawer-modal"
+>
+      <div v-if="currentNews" class="detail-drawer-content">
+        <h2>{{ currentNews.title }}</h2>
+        <p class="news-detail-meta">发布于：{{ currentNews.publishDate }}</p>
+<div class="detail-image-container">
+  <el-image
+    v-if="currentNews.cover_image_url"
+    :src="currentNews.cover_image_url"
+    fit="scale-down"
+    style="width: 100%; height: auto; max-height: none; display: block; margin: auto;"
+  ></el-image>
+</div>
+        <div class="news-detail-content" v-html="currentNews.content"></div>
+      </div>
+      <el-empty v-else description="暂无数据"></el-empty>
+    </el-drawer>
   </div>
 </template>
 
@@ -130,7 +174,11 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus';
 import { Picture } from '@element-plus/icons-vue';
-import newsService from '../../services/newsService';
+import { getAllNews, getNewsList, deleteNews, uploadNews, updateNews, getAdminNewsDetail } from '../../services/newsService';
+import ossService from '../../services/ossService';
+import { formatDateTime } from '../../utils/format';
+import { useAuthStore } from '../../store/auth';
+import { jwtDecode } from 'jwt-decode';
 
 // 搜索表单数据
 const searchForm = reactive({
@@ -139,14 +187,17 @@ const searchForm = reactive({
   publishDate: ''
 });
 
+// 获取认证存储
+const authStore = useAuthStore();
+
 // 新闻表单数据
 const newsForm = reactive({
   uuid: '',
   title: '',
-  content: '',
-  description: '',
-  imageUrl: '',
-  publishDate: ''
+  summary: '',
+  cover_image_url: '',
+  resource_url: '', // 假设富文本内容上传后会得到一个URL
+  company_uuid: '', // 将从JWT中获取
 });
 
 // 页面状态
@@ -156,6 +207,47 @@ const viewDialogVisible = ref(false);
 const dialogType = ref('add'); // 'add' 或 'edit'
 const saveLoading = ref(false);
 const currentNews = ref(null);
+
+// 处理抽屉关闭
+const handleDrawerClose = (done) => {
+  // 手动恢复body样式
+  document.body.style.overflow = '';
+  document.body.style.paddingRight = '';
+  // 移除可能添加的类
+  document.body.classList.remove('el-popup-parent--hidden');
+  done();
+};
+
+// 处理编辑抽屉关闭
+const handleEditDrawerClose = (done) => {
+  // 手动恢复body样式
+  document.body.style.overflow = '';
+  document.body.style.paddingRight = '';
+  // 移除可能添加的类
+  document.body.classList.remove('el-popup-parent--hidden');
+  done();
+};
+
+// 监听抽屉打开状态
+import { watch } from 'vue';
+watch(viewDialogVisible, (newVal) => {
+  if (newVal) {
+    // 抽屉打开时，立即恢复body样式，防止页面变形
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    document.body.classList.remove('el-popup-parent--hidden');
+  }
+});
+
+// 监听编辑抽屉打开状态
+watch(dialogVisible, (newVal) => {
+  if (newVal) {
+    // 抽屉打开时，立即恢复body样式，防止页面变形
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    document.body.classList.remove('el-popup-parent--hidden');
+  }
+});
 
 // 页面初始化
 onMounted(() => {
@@ -171,30 +263,83 @@ const fetchNewsList = async () => {
   });
   
   try {
-    const response = await newsService.getNewsList(searchForm);
-    newsList.value = response.data.data || [];
+    // 从JWT中获取当前用户的公司UUID和身份
+    let companyUuid = '';
+    let identity = '';
+    try {
+      const token = authStore.accessToken;
+      if (token) {
+        const decoded = jwtDecode(token);
+        companyUuid = decoded.uid;
+        // 安全地获取角色
+        if (decoded.roles && decoded.roles.length > 0) {
+          identity = decoded.roles[0];
+        } else {
+          identity = 'COMPANY'; // 提供一个默认值，或者根据业务逻辑处理
+        }
+      }
+    } catch (error) {
+      console.error('解析Token失败:', error);
+    }
+    
+    // 检查是否有搜索条件
+    const hasSearchCriteria = (
+      (searchForm.uuid && searchForm.uuid.trim()) || 
+      (searchForm.title && searchForm.title.trim()) ||
+      searchForm.publishDate
+    );
+    
+    let response;
+    
+    if (hasSearchCriteria) {
+      // 使用高级搜索接口
+      const searchParams = {
+        page: 1,
+        pageSize: 10,
+        userUuid: companyUuid,
+        identity: identity
+      };
+      
+      // 添加UUID搜索条件（如果有）
+      if (searchForm.uuid && searchForm.uuid.trim()) {
+        // 由于后端API不直接支持UUID搜索，我们可能需要在前端过滤
+        searchParams.uuid = searchForm.uuid.trim();
+      }
+      
+      // 添加标题搜索条件（如果有）
+      if (searchForm.title && searchForm.title.trim()) {
+        searchParams.title = searchForm.title.trim();
+      }
+      
+      // 添加发布日期搜索条件（如果有）
+      if (searchForm.publishDate) {
+        const formattedDate = searchForm.publishDate;
+        searchParams.start_time = formattedDate + ' 00:00:00';
+        searchParams.end_time = formattedDate + ' 23:59:59';
+      }
+      
+      response = await getNewsList(searchParams);
+      
+      // 如果使用UUID搜索，前端进行过滤（因为后端API不直接支持）
+      let results = response.data.data || [];
+      if (searchForm.uuid && searchForm.uuid.trim()) {
+        results = results.filter(item => item.uuid && item.uuid.includes(searchForm.uuid.trim()));
+      }
+      
+      newsList.value = results;
+    } else {
+      // 使用基本列表接口
+      const params = {
+        page: 1,
+        pageSize: 10
+      };
+      
+      response = await getAllNews(params);
+      newsList.value = response.data.data || [];
+    }
   } catch (error) {
     console.error('获取新闻列表失败:', error);
     ElMessage.error('获取新闻列表失败，请重试');
-    // 使用模拟数据用于开发
-    newsList.value = [
-      {
-        uuid: 'news-001',
-        title: '标题--东北大学xxx实验室发布',
-        description: '针对xxxx事件，我们成功开发了一款xxxxxx',
-        imageUrl: '',
-        publishDate: '2024-01-15',
-        content: '详细内容...'
-      },
-      {
-        uuid: 'news-002',
-        title: '新技术研发成功',
-        description: '我们的团队成功研发了新一代测试技术，将显著提高测试效率',
-        imageUrl: '',
-        publishDate: '2024-02-20',
-        content: '详细内容...'
-      }
-    ];
   } finally {
     loading.close();
   }
@@ -202,6 +347,14 @@ const fetchNewsList = async () => {
 
 // 搜索处理
 const handleSearch = () => {
+  fetchNewsList();
+};
+
+// 重置处理
+const handleReset = () => {
+  searchForm.uuid = '';
+  searchForm.title = '';
+  searchForm.publishDate = '';
   fetchNewsList();
 };
 
@@ -214,39 +367,60 @@ const handleAddNews = () => {
 
 // 查看新闻
 const handleViewNews = async (news) => {
+  viewDialogVisible.value = true;
+  currentNews.value = { ...news, content: '加载中...' }; // 先显示基本信息
   try {
-    if (dialogType.value === 'add') { // 如果是直接从列表点击查看
-      const response = await newsService.getNewsDetail(news.uuid);
-      currentNews.value = response.data.data;
-    } else {
-      // 直接使用已有数据
-      currentNews.value = news;
+    const response = await getAdminNewsDetail(news.uuid);
+    const detail = response.data.data;
+    
+    // 异步获取并渲染HTML内容
+    let htmlContent = '无法加载正文内容。';
+    if (detail.resource_url) {
+      try {
+        const contentResponse = await fetch(detail.resource_url);
+        if (contentResponse.ok) {
+          htmlContent = await contentResponse.text();
+        }
+      } catch (fetchError) {
+        console.error('获取HTML内容失败:', fetchError);
+      }
     }
+
+    currentNews.value = {
+      ...detail,
+      publishDate: formatDateTime(detail.created_at),
+      imageUrl: detail.cover_image_url,
+      content: htmlContent
+    };
   } catch (error) {
     console.error('获取新闻详情失败:', error);
     ElMessage.error('获取新闻详情失败，请重试');
-    // 使用传入的新闻对象作为备份
-    currentNews.value = news;
+    currentNews.value = { ...news, content: '加载详情失败。' };
   }
-  
-  viewDialogVisible.value = true;
 };
 
 // 编辑新闻
 const handleEditNews = async (news) => {
   dialogType.value = 'edit';
-  
   try {
-    const response = await newsService.getNewsDetail(news.uuid);
-    Object.assign(newsForm, response.data.data);
+    const response = await getAdminNewsDetail(news.uuid);
+    const detail = response.data.data;
+    
+    // 关键修复：newsForm.uuid 必须始终是 news 主表的 uuid
+    Object.assign(newsForm, {
+      uuid: news.uuid, // 使用从列表项传入的 news 主表 uuid
+      title: detail.title,
+      summary: detail.summary,
+      cover_image_url: detail.cover_image_url,
+      resource_url: detail.resource_url,
+      company_uuid: detail.company_uuid // 保留原有的公司UUID
+    });
+    
+    dialogVisible.value = true;
   } catch (error) {
     console.error('获取新闻详情失败:', error);
     ElMessage.error('获取新闻详情失败，请重试');
-    // 使用列表中的数据
-    Object.assign(newsForm, news);
   }
-  
-  dialogVisible.value = true;
 };
 
 // 删除新闻
@@ -257,12 +431,12 @@ const handleDeleteNews = (news) => {
     type: 'warning'
   }).then(async () => {
     try {
-      await newsService.deleteNews(news.uuid);
+      await deleteNews(news.uuid);
       ElMessage.success('删除成功');
-      fetchNewsList();
+      fetchNewsList(); // 重新加载列表
     } catch (error) {
       console.error('删除新闻失败:', error);
-      ElMessage.error('删除新闻失败，请重试');
+      ElMessage.error(error.response?.data?.message || '删除新闻失败，请重试');
     }
   }).catch(() => {
     // 取消删除
@@ -276,32 +450,45 @@ const handleSaveNews = async () => {
     return;
   }
   
-  if (!newsForm.content.trim()) {
-    ElMessage.warning('请输入新闻内容');
+  if (!newsForm.summary.trim()) {
+    ElMessage.warning('请输入新闻摘要');
     return;
-  }
-  
-  // 默认使用前100个字符作为描述
-  if (!newsForm.description) {
-    newsForm.description = newsForm.content.substring(0, 100);
   }
   
   saveLoading.value = true;
   
+  // 从JWT中获取用户UUID
+  try {
+    const token = authStore.accessToken;
+    if (token) {
+      const decoded = jwtDecode(token);
+      newsForm.company_uuid = decoded.uid;
+    } else {
+      ElMessage.error('未找到有效的认证信息');
+      saveLoading.value = false;
+      return;
+    }
+  } catch (error) {
+    console.error('解析Token失败:', error);
+    ElMessage.error('获取用户信息失败');
+    saveLoading.value = false;
+    return;
+  }
+
   try {
     if (dialogType.value === 'add') {
-      await newsService.createNews(newsForm);
-      ElMessage.success('新增成功');
+      await uploadNews(newsForm);
+      ElMessage.success('新增成功，等待审核');
     } else {
-      await newsService.updateNews(newsForm.uuid, newsForm);
-      ElMessage.success('编辑成功');
+      await updateNews(newsForm.uuid, newsForm);
+      ElMessage.success('编辑成功，等待审核');
     }
     
     dialogVisible.value = false;
     fetchNewsList();
   } catch (error) {
     console.error('保存新闻失败:', error);
-    ElMessage.error('保存新闻失败，请重试');
+    ElMessage.error(error.response?.data?.message || '保存新闻失败，请重试');
   } finally {
     saveLoading.value = false;
   }
@@ -321,26 +508,129 @@ const beforeUpload = (file) => {
   return isJPG && isLt2M;
 };
 
-// 上传成功回调
-const handleUploadSuccess = (response) => {
-  if (response.code === 0) {
-    newsForm.imageUrl = response.data.url;
+// 自定义封面图上传处理
+const handleCustomUpload = async (options) => {
+  const { file } = options;
+  const loading = ElLoading.service({
+    lock: true,
+    text: '上传中...',
+    background: 'rgba(255, 255, 255, 0.7)'
+  });
+  try {
+    const url = await ossService.uploadFile(file);
+    newsForm.cover_image_url = url;
     ElMessage.success('上传成功');
-  } else {
-    ElMessage.error(response.message || '上传失败');
+  } catch (error) {
+    console.error('上传失败:', error);
+    ElMessage.error('上传失败，请检查控制台日志');
+  } finally {
+    loading.close();
   }
 };
 
 // 重置表单
 const resetNewsForm = () => {
-  newsForm.uuid = '';
-  newsForm.title = '';
-  newsForm.content = '';
-  newsForm.description = '';
-  newsForm.imageUrl = '';
-  newsForm.publishDate = '';
+  Object.assign(newsForm, {
+    uuid: '',
+    title: '',
+    summary: '',
+    cover_image_url: '',
+    resource_url: '',
+    company_uuid: '',
+  });
+};
+
+// 上传正文HTML前的验证
+const beforeContentUpload = (file) => {
+  const isHtml = file.type === 'text/html';
+  if (!isHtml) {
+    ElMessage.error('正文只能上传 HTML 文件!');
+  }
+  return isHtml;
+};
+
+// 自定义正文上传处理
+const handleContentUpload = async (options) => {
+  const { file } = options;
+  const loading = ElLoading.service({ lock: true, text: '上传正文中...' });
+  try {
+    const url = await ossService.uploadFile(file);
+    newsForm.resource_url = url;
+    ElMessage.success('正文上传成功');
+  } catch (error) {
+    console.error('正文上传失败:', error);
+    ElMessage.error('正文上传失败，请检查控制台日志');
+  } finally {
+    loading.close();
+  }
+};
+
+// 移除已上传的正文文件
+const handleContentRemove = () => {
+  newsForm.resource_url = '';
+};
+
+// 根据状态获取标签类型
+const getStatusTagType = (status) => {
+  switch (status) {
+    case 'published':
+      return 'success';
+    case 'pending':
+      return 'warning';
+    case 'archived':
+      return 'info';
+    case 'rejected':
+      return 'danger';
+    default:
+      return 'info';
+  }
 };
 </script>
+
+<style>
+/* 覆盖Element Plus抽屉组件对body的样式修改 */
+body.el-popup-parent--hidden {
+  overflow: auto !important;
+  padding-right: 0 !important;
+  width: 100% !important;
+  position: static !important;
+}
+
+/* 确保遮罩层不影响布局 */
+.el-overlay {
+  position: absolute !important;
+  z-index: 2000;
+}
+
+/* 确保抽屉内容不影响外部布局 */
+.news-detail-drawer-modal, .news-edit-drawer-modal {
+  position: fixed;
+}
+
+/* 确保抽屉内容区域有足够的宽度 */
+.el-drawer__body {
+  width: 100%;
+  overflow-x: hidden;
+  padding: 0;
+}
+
+/* 防止抽屉影响主布局 */
+.el-drawer__container {
+  position: absolute !important;
+}
+
+/* 确保抽屉打开时不影响主布局 */
+.el-drawer__wrapper {
+  position: absolute !important;
+  overflow: visible !important;
+}
+
+/* 确保侧边栏和顶部导航不受影响 */
+.el-aside, .el-header {
+  position: relative !important;
+  z-index: auto !important;
+}
+</style>
 
 <style scoped>
 .news-container {
@@ -353,6 +643,14 @@ const resetNewsForm = () => {
   padding: 16px;
   margin-bottom: 0;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.search-form .el-form-item {
+  margin-right: 10px;
+}
+
+.search-form .el-input {
+  width: 180px;
 }
 
 .news-list {
@@ -384,9 +682,16 @@ const resetNewsForm = () => {
   min-height: 120px;
 }
 
+.news-title-line {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 .news-title {
   margin-top: 0;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  margin-right: 10px;
   font-size: 18px;
   font-weight: 600;
   color: #121212;
@@ -394,13 +699,14 @@ const resetNewsForm = () => {
 
 .news-desc {
   color: #646464;
-  margin-bottom: 12px;
+  margin: 8px 0 12px; /* 保持与其他元素的间距感 */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.5;
   flex-grow: 1;
+  padding-left: 0; /* 确保没有额外的内边距导致不对齐 */
 }
 
 .news-meta {
@@ -435,5 +741,30 @@ const resetNewsForm = () => {
 .news-detail-content {
   margin-top: 20px;
   line-height: 1.6;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.cover-image-uploader {
+  display: flex;
+  align-items: flex-end;
+}
+
+.detail-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 15px 0;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  width: 100%;
+  min-height: 200px;
+  overflow: visible;
+}
+
+.detail-drawer-content, .edit-drawer-content {
+  padding: 0 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 </style>

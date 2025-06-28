@@ -82,6 +82,12 @@ button:focus-visible {
   padding: 2em;
 }
 
+/* 强制防止 el-dialog 修改 body 滚动条 */
+body.el-popup-parent--hidden {
+  overflow: auto !important;
+  padding-right: 0 !important;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
