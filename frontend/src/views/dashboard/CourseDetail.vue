@@ -2,18 +2,18 @@
   <div class="course-detail-container">
     <div class="header">
       <el-button @click="goBack" :icon="ArrowLeft" text>返回</el-button>
-      <h2 class="chapter-title">{{ course.name || '课程章节1--基础语法' }}</h2>
+      <h2 class="chapter-title">{{ course.name }}</h2>
     </div>
     
     <div class="content-container">
       <!-- 左侧视频播放区域 -->
       <div class="video-container">
         <div class="video-player" ref="videoPlayerRef">
-          <div v-if="!currentVideo" class="video-placeholder">
-            <span>视频将在预览时播放</span>
+          <div v-if="!currentVideoUrl" class="video-placeholder">
+            <span>请从右侧列表选择一个视频进行播放</span>
           </div>
-          <video v-else controls class="video-element" :key="currentVideo.resourcesUrl" ref="videoRef">
-            <source :src="currentVideo.resourcesUrl" type="video/mp4">
+          <video v-else controls class="video-element" :key="currentVideoUrl" ref="videoRef" autoplay>
+            <source :src="currentVideoUrl" type="video/mp4">
             您的浏览器不支持视频播放
           </video>
           <el-button class="fullscreen-btn" :icon="FullScreen" @click="toggleFullScreen" text></el-button>
@@ -23,21 +23,20 @@
       <!-- 右侧章节列表 -->
       <div class="chapters-container">
         <div class="course-title">
-          <h3>{{ course.name || '课程标题--java速成' }}</h3>
+          <h3>{{ course.name }}</h3>
         </div>
         
         <el-scrollbar class="chapter-list-scrollbar">
           <div class="chapter-list">
             <div 
-              v-for="(resource, index) in courseResources" 
+              v-for="(resource, index) in course.resources" 
               :key="index" 
               class="chapter-item"
               :class="{ 'active': currentVideoIndex === index }"
-              @click="selectVideo(index)"
+              @click="selectVideo(resource, index)"
             >
               <div class="chapter-info">
-                <div class="chapter-name">{{ resource.name || `课程章节${index+1}--基础语法` }}</div>
-                <div class="chapter-duration">{{ resource.duration || (index % 2 === 0 ? '20:10' : '19:21') }}</div>
+                <div class="chapter-name">{{ resource.name }}</div>
               </div>
             </div>
           </div>
@@ -48,13 +47,13 @@
     <!-- 课程描述 -->
     <div class="course-description">
       <h3>课程描述</h3>
-      <p>{{ course.description || 'xxxxxxxxx' }}</p>
+      <p>{{ course.description }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import courseService from '../../services/courseService';
 import { ElMessage } from 'element-plus';
@@ -62,50 +61,46 @@ import { ArrowLeft, FullScreen } from '@element-plus/icons-vue';
 
 const route = useRoute();
 const router = useRouter();
-const course = ref({});
-const currentVideoIndex = ref(0);
-const videoPlayerRef = ref(null);
-const videoRef = ref(null);
-
-// 模拟课程资源数据
-const courseResources = ref([
-  { name: '课程章节1--基础语法', duration: '20:10', resourcesUrl: '' },
-  { name: '课程章节1--基础语法', duration: '19:21', resourcesUrl: '' },
-  { name: '课程章节2--进阶操作', duration: '15:45', resourcesUrl: '' },
-  { name: '课程章节3--实战应用', duration: '22:30', resourcesUrl: '' },
-  { name: '课程章节4--总结回顾', duration: '18:15', resourcesUrl: '' }
-]);
-
-const currentVideo = computed(() => {
-  if (course.value.resources && course.value.resources.length > 0) {
-    return course.value.resources[currentVideoIndex.value];
-  } else if (courseResources.value.length > 0) {
-    return courseResources.value[currentVideoIndex.value];
-  }
-  return null;
+const course = ref({
+  name: '',
+  description: '',
+  resources: []
 });
+const currentVideoIndex = ref(null);
+const currentVideoUrl = ref('');
+const videoPlayerRef = ref(null);
 
 const fetchCourseDetail = async () => {
+  console.log("Fetching course details...");
   try {
     const uuid = route.params.uuid;
+    console.log("Course UUID:", uuid);
     const response = await courseService.getLessonDetail(uuid);
-    course.value = response.data;
-    
-    // 如果有资源，更新模拟数据
-    if (response.data.resources && response.data.resources.length > 0) {
-      courseResources.value = response.data.resources.map((resource, index) => ({
-        ...resource,
-        duration: resource.duration || (index % 2 === 0 ? '20:10' : '19:21')
-      }));
+    console.log("API Response:", response);
+    if (response.data && response.data.data) {
+      console.log("Course data received:", response.data.data);
+      course.value = response.data.data;
+      // 默认播放第一个视频
+      if (course.value.resources && course.value.resources.length > 0) {
+        console.log("Setting default video to the first one.");
+        selectVideo(course.value.resources[0], 0);
+      } else {
+        console.log("No resources found in the course data.");
+      }
+    } else {
+        console.log("No data in the response.");
     }
   } catch (error) {
     ElMessage.error('获取课程详情失败');
-    console.error(error);
+    console.error("Error fetching course details:", error);
   }
 };
 
-const selectVideo = (index) => {
+const selectVideo = (resource, index) => {
+  console.log(`Selecting video index: ${index}`, resource);
   currentVideoIndex.value = index;
+  currentVideoUrl.value = resource.resources_url;
+  console.log("Current video URL set to:", currentVideoUrl.value);
 };
 
 const goBack = () => {

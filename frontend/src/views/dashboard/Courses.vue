@@ -64,7 +64,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import courseService from '../../services/courseService';
 import CourseFormDialog from '../../components/dashboard/CourseFormDialog.vue';
 
@@ -148,8 +148,27 @@ const handleEdit = (course) => {
 };
 
 // 删除课程
-const handleDelete = (course) => {
-  ElMessage.info(`删除功能暂未实现: ${course.name}`);
+const handleDelete = async (course) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除课程《${course.name}》吗？此操作不可撤销。`,
+      '警告',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    
+    await courseService.deleteLesson([course.uuid]);
+    ElMessage.success('课程删除成功');
+    fetchLessons(); // 重新加载列表
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败，请稍后重试');
+      console.error('Delete lesson error:', error);
+    }
+  }
 };
 
 const courseFormVisible = ref(false);

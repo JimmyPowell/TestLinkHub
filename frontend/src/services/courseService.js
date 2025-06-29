@@ -8,32 +8,12 @@ const courseService = {
 
   // 上传课程
   uploadLesson(lessonData) {
-    const videos = lessonData.videos || [];
-    const requestData = {
-      name: lessonData.name,
-      description: lessonData.description,
-      image_url: lessonData.imageUrl,
-      author_name: lessonData.authorName,
-      resources_type: 'video',
-      resources_urls: videos.map(video => video.url),
-      sort_orders: videos.map((_, index) => index + 1)
-    };
-    return api.post('/admin/lesson/upload', requestData);
+    return api.post('/admin/lesson/upload', lessonData);
   },
 
   // 更新课程
   updateLesson(uuid, lessonData) {
-    const videos = lessonData.videos || [];
-    const requestData = {
-      name: lessonData.name,
-      description: lessonData.description,
-      image_url: lessonData.imageUrl,
-      author_name: lessonData.authorName,
-      resources_type: 'video',
-      resources_urls: videos.map(video => video.url),
-      sort_orders: videos.map((_, index) => index + 1)
-    };
-    return api.put(`/admin/lesson/update?uuid=${uuid}`, requestData);
+    return api.put(`/admin/lesson/update?uuid=${uuid}`, lessonData);
   },
 
   // 删除课程
@@ -43,7 +23,7 @@ const courseService = {
 
   // 获取课程详情
   getLessonDetail(uuid) {
-    return api.get(`/admin/lesson/detail?uuid=${uuid}`);
+    return api.get(`/user/lesson/detail?uuid=${uuid}`);
   }
 };
 

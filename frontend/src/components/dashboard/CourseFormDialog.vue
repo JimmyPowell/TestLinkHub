@@ -131,20 +131,41 @@ const dragIndex = ref(-1);
 const isEditMode = computed(() => !!props.course);
 
 // 监听modelValue属性变化
-watch(() => props.modelValue, (newVal) => {
+watch(() => props.modelValue, async (newVal) => {
   dialogVisible.value = newVal;
   if (newVal) {
-    if (props.course) {
-      // 编辑模式，填充表单
-      courseForm.title = props.course.name;
-      courseForm.description = props.course.description;
-      courseForm.coverUrl = props.course.imageUrl;
-      courseForm.videos = props.course.resources ? props.course.resources.map((r, i) => ({
-        id: i,
-        name: r.name || `视频 ${i + 1}`,
-        url: r.resourcesUrl,
-        file: null
-      })) : [];
+    if (isEditMode.value && props.course && props.course.uuid) {
+      // 编辑模式，通过uuid获取完整课程信息
+      try {
+        const response = await courseService.getLessonDetail(props.course.uuid);
+        if (response.data && response.data.data) {
+            const courseDetail = response.data.data;
+            courseForm.title = courseDetail.name;
+            courseForm.description = courseDetail.description;
+            courseForm.coverUrl = courseDetail.image_url;
+            courseForm.videos = courseDetail.resources ? courseDetail.resources.map((r, i) => ({
+              id: r.uuid || i, // Use a unique identifier if available
+              name: r.name || `视频 ${i + 1}`,
+              url: r.resources_url,
+              file: null
+            })) : [];
+        } else {
+            // fallback to props if detail fetch fails but props exist
+            courseForm.title = props.course.name;
+            courseForm.description = props.course.description;
+            courseForm.coverUrl = props.course.imageUrl; // Note the camelCase here
+            courseForm.videos = []; // No resources in list view
+        }
+      } catch (error) {
+        ElMessage.error('获取课程详细信息失败');
+        console.error(error);
+        // Fallback to props if API call fails
+        courseForm.title = props.course.name;
+        courseForm.description = props.course.description;
+        courseForm.coverUrl = props.course.imageUrl;
+        courseForm.videos = [];
+        handleClose(); // Optionally close dialog on error
+      }
     } else {
       // 新建模式，重置表单
       courseForm.title = '';
@@ -249,9 +270,12 @@ const handleSubmit = async () => {
     const lessonData = {
       name: courseForm.title,
       description: courseForm.description,
-      imageUrl: courseForm.coverUrl,
-      authorName: '当前用户',
-      videos: courseForm.videos
+      image_url: courseForm.coverUrl,
+      author_name: '当前用户', // 之后会替换为真实用户
+      resources_type: 'video', // 假设目前只支持视频
+      resources_urls: courseForm.videos.map(v => v.url),
+      resource_names: courseForm.videos.map(v => v.name),
+      sort_orders: courseForm.videos.map((v, index) => index)
     };
 
     if (isEditMode.value) {
