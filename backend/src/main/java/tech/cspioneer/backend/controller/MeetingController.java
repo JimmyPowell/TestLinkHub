@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import tech.cspioneer.backend.entity.MeetingParticipant;
 import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.dto.request.MeetingParticipantRequest;
+import tech.cspioneer.backend.entity.dto.response.RootReviewResponse;
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.service.MeetingPartService;
 import tech.cspioneer.backend.service.MeetingService;
@@ -55,11 +56,11 @@ public class MeetingController {
     //会议浏览-/api/user/meeting/list/{page}{size}+
     @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
     @GetMapping("/list")
-    public ResponseEntity<ApiResponse<List<MeetingVersion>>> browseMeetings(
+    public ResponseEntity<ApiResponse<List<RootReviewResponse>>> browseMeetings(
             @RequestParam int page,
             @RequestParam int size,
             @AuthenticationPrincipal String useruuid) {
-        List<MeetingVersion> meetings = meetingService.getPublishedMeetings(page, size);
+        List<RootReviewResponse> meetings = meetingService.getPublishedMeetings(page, size);
         return ResponseEntity.ok(new ApiResponse<>(200,"浏览会议列表获取成功",meetings));
     }
 
@@ -68,18 +69,18 @@ public class MeetingController {
     //会议详情-/api/user/meeting/{meeting_uuid}+
     @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
     @GetMapping("/")
-    public ResponseEntity<ApiResponse<MeetingVersion>> getMeetingDetails(
+    public ResponseEntity<ApiResponse<RootReviewResponse>> getMeetingDetails(
             @RequestParam String meeting_uuid,
             @AuthenticationPrincipal String useruuid
     ){
-        MeetingVersion details = meetingService.getMeetingDetails(meeting_uuid);
+        RootReviewResponse details = meetingService.getMeetingDetails(meeting_uuid);
         return ResponseEntity.ok(ApiResponse.success(200, "获取会议详情成功", details));
     }
 
 
     //参加会议-/api/user/meeting/participant+
     @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
-    @GetMapping("/participant")
+    @PostMapping("/participant")
     public ResponseEntity<ApiResponse<Void>> joinMeeting(
             @RequestBody MeetingParticipantRequest request,
             @AuthenticationPrincipal String useruuid) {

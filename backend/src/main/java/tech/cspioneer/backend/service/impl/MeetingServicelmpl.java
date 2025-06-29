@@ -348,7 +348,7 @@ public class MeetingServicelmpl implements MeetingService {
     }
 
     @Override
-    public MeetingVersion getMeetingDetails(String meetingUuid) {
+    public RootReviewResponse getMeetingDetails(String meetingUuid) {
         // 1. 根据会议主表 UUID 查会议主表对象
         Meeting meeting = meetingMapper.findByUuid(meetingUuid);
         if (meeting == null) {
@@ -367,18 +367,18 @@ public class MeetingServicelmpl implements MeetingService {
             throw new ResourceNotFoundException("MeetingVersion", "id", currentVersionId.toString());
         }
 
-        return version;
+        // 4. 封装为 RootReviewResponse 返回
+        return convertToRootReview(version);
     }
 
 
 
     @Override
-    public List<MeetingVersion> getPublishedMeetings(int page, int size) {
-
-        // 1. 查询所有发布的会议（meeting 表）
+    public List<RootReviewResponse> getPublishedMeetings(int page, int size) {
+        // 1. 查询所有已发布的会议
         List<Meeting> publishedMeetings = meetingMapper.findPublishedMeetings();
 
-        // 2. 提取所有 currentVersionId
+        // 2. 提取 current_version_id
         List<Long> currentVersionIds = publishedMeetings.stream()
                 .map(Meeting::getCurrentVersionId)
                 .filter(Objects::nonNull)
@@ -388,15 +388,20 @@ public class MeetingServicelmpl implements MeetingService {
             return List.of();
         }
 
-        // 3. 查询对应的版本（meeting_version 表）
+        // 3. 查询所有对应版本
         List<MeetingVersion> versions = meetingVersionMapper.findVersionsByIds(currentVersionIds);
 
-        // 4. 分页（手动处理，或写 SQL 限制）
+        // 4. 分页处理（手动分页）
         int fromIndex = Math.min((page - 1) * size, versions.size());
         int toIndex = Math.min(fromIndex + size, versions.size());
+        List<MeetingVersion> pagedVersions = versions.subList(fromIndex, toIndex);
 
-        return versions.subList(fromIndex, toIndex);
+        // 5. 转换为 RootReviewResponse
+        return pagedVersions.stream()
+                .map(this::convertToRootReview)
+                .toList();
     }
+
 
     @Override
     public List<MeetingVersionWithMeetingUuidResponse> getMeetingVersionsByCreator(

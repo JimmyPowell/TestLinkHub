@@ -37,9 +37,9 @@ public interface MeetingService {
 
     RootReviewResponse getMeetingVersionDetails(String meetingversionuuid);
 
-    List<MeetingVersion> getPublishedMeetings(int page, int size);
+    List<RootReviewResponse> getPublishedMeetings(int page, int size);
 
-    MeetingVersion getMeetingDetails(String meetingUuid);
+    RootReviewResponse getMeetingDetails(String meetingUuid);
 
     List<MeetingVersionWithMeetingUuidResponse> getMeetingVersionsByCreator(
             String creatorUuid,
