@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import tech.cspioneer.backend.entity.MeetingParticipant;
 import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.dto.request.MeetingParticipantRequest;
+import tech.cspioneer.backend.entity.dto.response.MeetingPartResponse;
 import tech.cspioneer.backend.entity.dto.response.RootReviewResponse;
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.service.MeetingPartService;
@@ -32,23 +33,23 @@ public class MeetingController {
     //获取参会申请详细信息-/api/user/meeting/part/{part_uuid}+
     @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
     @GetMapping("/part")
-    public ResponseEntity<ApiResponse<MeetingParticipant>> getMeetingPartDetail(
+    public ResponseEntity<ApiResponse<MeetingPartResponse>> getMeetingPartDetail(
             @RequestParam String part_uuid,
             @AuthenticationPrincipal String useruuid
     ) {
         //根据申请uuid找参会详情
-        MeetingParticipant part = meetingPartService.findMeetingPartByUuid(part_uuid);
+        MeetingPartResponse part = meetingPartService.findMeetingPartByUser(part_uuid);
         return ResponseEntity.ok(new ApiResponse<>(200,"获取参会详细信息成功",part));
     }
 
     //用户获取自己的参会申请列表-/api/user/meeting/part/list/{page}{size}+
     @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
     @GetMapping("/part/list")
-    public ResponseEntity<ApiResponse<List<MeetingParticipant>>> getUserPartList(
+    public ResponseEntity<ApiResponse<List<MeetingPartResponse>>> getUserPartList(
             @RequestParam int page,
             @RequestParam int size,
             @AuthenticationPrincipal String useruuid) {
-        List<MeetingParticipant> parts = meetingPartService.getMeetingPartsByUser(useruuid, page, size);
+        List<MeetingPartResponse> parts = meetingPartService.getMeetingPartsByUser(useruuid, page, size);
         return ResponseEntity.ok(new ApiResponse<>(200,"获取参会申请列表成功",parts));
     }
 
