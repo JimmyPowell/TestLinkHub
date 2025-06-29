@@ -236,7 +236,7 @@ public class NewsServiceImpl implements NewsService {
             }
             case "USER" -> {
                 User user = userMapper.findByUuid(request.getUserUuid());
-                Company company = companyMapper.findById(user.getId());
+                Company company = companyMapper.findById(user.getCompanyId());
                 newsListQuery.setCompanyUuid(company.getUuid());
                 newsListResponses = newsMapper.findNewsList(newsListQuery,offset);
             }
