@@ -27,9 +27,12 @@ public class ClientNewsController{
     @GetMapping("/newsList")
     @PreAuthorize("hasAnyAuthority('USER','COMPANY','ADMIN')")
     public ResponseEntity<ApiResponse<List<NewsListResponse>>> getNewsList(
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer pageSize,
-            @RequestBody NewsQueryRequest newsQueryRequest) {
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "16") Integer pageSize,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
+            @RequestParam(required = false) String summary,
+            @RequestParam(required = false) String title) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userUuid = (String) authentication.getPrincipal();
         // 获取用户身份/角色
@@ -37,6 +40,11 @@ public class ClientNewsController{
                 .findFirst()
                 .map(authority -> authority.getAuthority())
                 .orElse("UNKNOWN");
+        NewsQueryRequest newsQueryRequest = new NewsQueryRequest();
+        newsQueryRequest.setTitle(title);
+        newsQueryRequest.setSummary(summary);
+        newsQueryRequest.setEndTime(endTime);
+        newsQueryRequest.setStartTime(startTime);
         newsQueryRequest.setPage(page);
         newsQueryRequest.setPageSize(pageSize);
         newsQueryRequest.setIdentity(identity);
