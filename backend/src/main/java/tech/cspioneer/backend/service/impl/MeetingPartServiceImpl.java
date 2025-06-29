@@ -3,11 +3,15 @@ package tech.cspioneer.backend.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import tech.cspioneer.backend.entity.Company;
 import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingParticipant;
 import tech.cspioneer.backend.entity.User;
 import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingParticipantRequest;
+import tech.cspioneer.backend.entity.dto.response.MeetingApplicationResponse;
+import tech.cspioneer.backend.exception.ResourceNotFoundException;
+import tech.cspioneer.backend.mapper.CompanyMapper;
 import tech.cspioneer.backend.mapper.MeetingMapper;
 import tech.cspioneer.backend.mapper.MeetingParticipantMapper;
 import tech.cspioneer.backend.mapper.UserMapper;
@@ -20,7 +24,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class MeetingPartServicelmpl implements MeetingPartService {
+public class MeetingPartServiceImpl implements MeetingPartService {
     @Autowired
     private MeetingMapper meetingMapper;
     @Autowired
@@ -28,14 +32,14 @@ public class MeetingPartServicelmpl implements MeetingPartService {
     @Autowired
     private MeetingParticipantMapper meetingParticipantMapper;
     @Autowired
-    private MeetingParticipantMapper meetingPartMapper;
+    private CompanyMapper companyMapper;
 
 
     //审核参会+
     @Override
     public void reviewpart(MeetingPartReviewRequest reviewresult) {
         //1.确定该申请是否处于对应的待审清状态
-        MeetingParticipant part = meetingPartMapper.findPartByUuid(reviewresult.getPartUuid());
+        MeetingParticipant part = meetingParticipantMapper.findPartByUuid(reviewresult.getPartUuid());
         if(part == null) {
             throw new RuntimeException("参会申请不存在");
         }
@@ -43,7 +47,7 @@ public class MeetingPartServicelmpl implements MeetingPartService {
             throw new RuntimeException("该申请不是待审核状态");
         }
         //2.更新审核信息到表里
-        meetingPartMapper.updateReviewResult(
+        meetingParticipantMapper.updateReviewResult(
                 part.getId(),
                 reviewresult.getReviewResult(),
                 reviewresult.getComments()
@@ -56,7 +60,7 @@ public class MeetingPartServicelmpl implements MeetingPartService {
     //通过part_uuid来查找会议
     @Override
     public MeetingParticipant findMeetingPartByUuid(String partUuid) {
-        return meetingPartMapper.findByUuid(partUuid);
+        return meetingParticipantMapper.findByUuid(partUuid);
     }
 
     @Override
@@ -70,10 +74,14 @@ public class MeetingPartServicelmpl implements MeetingPartService {
 
     //这是管理员获取参会申请列表的service，在这里根据管理员获取会议参会申请
     @Override
-    public List<MeetingParticipant> getMeetingPartsByCreator(String useruuid, int page, int size) {
+    public List<MeetingApplicationResponse> getMeetingPartsByCreator(String useruuid, int page, int size) {
         int offset = (page - 1) * size;
-
-        return meetingPartMapper.findPartsByCreator(useruuid, offset, size);
+        Company company = companyMapper.findByUuid(useruuid);
+        if (company == null) {
+            throw new ResourceNotFoundException("Company", "uuid", useruuid);
+        }
+        Long creatorId = company.getId();
+        return meetingParticipantMapper.findPartsByCreator(creatorId, offset, size);
     }
 
     @Override
@@ -88,7 +96,7 @@ public class MeetingPartServicelmpl implements MeetingPartService {
         int offset = (page - 1) * size;
         User user = userMapper.findByUuid(useruuid);
         Long userId = user.getId();
-        return meetingPartMapper.findPartsByUser(userId, offset, size);
+        return meetingParticipantMapper.findPartsByUser(userId, offset, size);
     }
 
     @Override
@@ -124,7 +132,7 @@ public class MeetingPartServicelmpl implements MeetingPartService {
 
         System.out.println("插入参会申请详情"+participant.toString());
 
-        meetingPartMapper.insertParticipant(participant);
+        meetingParticipantMapper.insertParticipant(participant);
     }
 
 
