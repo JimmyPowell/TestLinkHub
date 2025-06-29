@@ -62,6 +62,14 @@ public class LessonServiceImpl implements LessonService {
                 sortOrders = tmp;
             }
 
+            List<String> resourceNames = null;
+            Object resourceNamesObj = lessonRequestBody.get("resourceNames");
+            if (resourceNamesObj instanceof List<?>) {
+                @SuppressWarnings("unchecked")
+                List<String> tmp = (List<String>) resourceNamesObj;
+                resourceNames = tmp;
+            }
+
             // 2. 创建课程版本
             LessonVersion version = new LessonVersion();
             version.setUuid(UUID.randomUUID().toString());
@@ -123,6 +131,11 @@ public class LessonServiceImpl implements LessonService {
                     resource.setUuid(UUID.randomUUID().toString());
                     resource.setLessonVersionId(version.getId());
                     resource.setResourcesUrl(resourcesUrls.get(i));
+                    if (resourceNames != null && i < resourceNames.size() && resourceNames.get(i) != null) {
+                        resource.setName(resourceNames.get(i));
+                    } else {
+                        resource.setName("默认资源名称"); // 或者其他默认值
+                    }
                     resource.setResourcesType(resourcesType != null ? resourcesType : "other");
                     if (sortOrders != null && i < sortOrders.size() && sortOrders.get(i) != null) {
                         resource.setSortOrder(sortOrders.get(i));
@@ -232,12 +245,25 @@ public class LessonServiceImpl implements LessonService {
             sortOrders = tmp;
         }
 
+        List<String> resourceNames = null;
+        Object resourceNamesObj = lessonRequestBody.get("resourceNames");
+        if (resourceNamesObj instanceof List<?>) {
+            @SuppressWarnings("unchecked")
+            List<String> tmp = (List<String>) resourceNamesObj;
+            resourceNames = tmp;
+        }
+
         if (resourcesUrls != null && !resourcesUrls.isEmpty()) {
             for (int i = 0; i < resourcesUrls.size(); i++) {
                 LessonResources resource = new LessonResources();
                 resource.setUuid(UUID.randomUUID().toString());
                 resource.setLessonVersionId(lessonVersionMapper.selectByUuid(newVersion.getUuid()).getId());
                 resource.setResourcesUrl(resourcesUrls.get(i));
+                if (resourceNames != null && i < resourceNames.size() && resourceNames.get(i) != null) {
+                    resource.setName(resourceNames.get(i));
+                } else {
+                    resource.setName("默认资源名称");
+                }
                 resource.setResourcesType(resourcesType != null ? resourcesType : "other");
                 // sortOrder与资源一一对应
                 if (sortOrders != null && i < sortOrders.size() && sortOrders.get(i) != null) {
@@ -317,24 +343,49 @@ public class LessonServiceImpl implements LessonService {
             dto.setAuthorName((String) row.get("author_name"));
             dto.setVersion(row.get("version") != null ? ((Number)row.get("version")).intValue() : null);
             dto.setUuid((String) row.get("uuid"));
+            dto.setStatus((String) row.get("status"));
+            dto.setUpdatedAt(row.get("updated_at").toString());
             resultList.add(dto);
         }
     }
 
     @Override
-    public LessonDetailResponse getLessonDetail(LessonDetailRequest req) {
+    public LessonDetailResponse getLessonDetail(String uuid, Integer page, Integer size, String userUuid, String identity) {
         LessonDetailResponse resp = new LessonDetailResponse();
-        String uuid = req.getUuid();
-        int page = req.getPage() != null ? req.getPage() : 0;
-        int size = req.getSize() != null ? req.getSize() : 10;
-        int offset = page * size;
-        // 查课程
+        int pageNum = page != null ? page : 0;
+        int sizeNum = size != null ? size : 10;
+        int offset = pageNum * sizeNum;
+
         Lesson lesson = lessonMapper.selectByUuid(uuid);
-        Long currentVersionId = lesson.getCurrentVersionId();
-        LessonVersion version = null;
-        if (currentVersionId != null) {
-            version = lessonVersionMapper.selectById(currentVersionId);
+        if (lesson == null) {
+            throw new LessonServiceException("课程不存在");
         }
+
+        Long versionIdToFetch = null;
+
+        if ("COMPANY".equals(identity)) {
+            Company company = companyMapper.findByUuid(userUuid);
+            if (company == null || !company.getId().equals(lesson.getPublisherId())) {
+                 throw new LessonServiceException("无权访问该课程");
+            }
+            // 如果是公司，并且课程在审核中或被拒绝，则看pending version
+            if ("pending_review".equals(lesson.getStatus()) || "rejected".equals(lesson.getStatus())) {
+                versionIdToFetch = lesson.getPendingVersionId();
+            } else {
+                versionIdToFetch = lesson.getCurrentVersionId();
+            }
+        } else {
+            // 其他角色（ADMIN, USER）看current version
+            versionIdToFetch = lesson.getCurrentVersionId();
+        }
+
+        if (versionIdToFetch == null) {
+            // 如果没有可供查看的版本（例如，新课程首次提交，还未有current version），可以返回空或特定提示
+            return resp;
+        }
+
+        LessonVersion version = lessonVersionMapper.selectById(versionIdToFetch);
+
         if (version != null) {
             resp.setName(version.getName());
             resp.setImageUrl(version.getImageUrl());
@@ -348,9 +399,10 @@ public class LessonServiceImpl implements LessonService {
             int total = allResources.size();
             resp.setTotal(total);
             List<LessonResourceItemResponse> resourceList = new ArrayList<>();
-            for (int i = offset; i < Math.min(offset + size, total); i++) {
+            for (int i = offset; i < Math.min(offset + sizeNum, total); i++) {
                 LessonResources res = allResources.get(i);
                 LessonResourceItemResponse dto = new LessonResourceItemResponse();
+                dto.setName(res.getName());
                 dto.setResourcesType(res.getResourcesType());
                 dto.setResourcesUrl(res.getResourcesUrl());
                 resourceList.add(dto);
@@ -487,17 +539,7 @@ public class LessonServiceImpl implements LessonService {
         return lessonAuditHistoryMapper.softDeleteHistoryByUuids(uuids);
     }
 
-    private boolean isValidResourceType(String resourceType) {
-        if (resourceType == null) return false;
-        return resourceType.equals("video") ||
-                resourceType.equals("audio") ||
-                resourceType.equals("document") ||
-                resourceType.equals("image") ||
-                resourceType.equals("link") ||
-                resourceType.equals("other");
-    }
-
-    // 新增：公司待审核课程概览
+    @Override
     public Map<String, Object> getPendingReviewLessonsOverview(String name, String status, String lessonUuid, String companyUuid, int page, int size) {
         Company company = companyMapper.findByUuid(companyUuid);
         if (company == null) throw new LessonServiceException("公司不存在");
@@ -513,5 +555,28 @@ public class LessonServiceImpl implements LessonService {
         result.put("total", total);
         result.put("list", list);
         return result;
+    }
+
+    @Override
+    public LessonListResponse getLessonsByCompany(String companyUuid, String lessonUuid, String name, String status, int page, int size) {
+        int offset = page * size;
+        List<Map<String, Object>> rawList = lessonMapper.findLessonsByCompanyUuidWithVersion(companyUuid, lessonUuid, name, status, size, offset);
+        long total = lessonMapper.countLessonsByCompanyUuid(companyUuid, lessonUuid, name, status);
+        List<LessonListItemResponse> resultList = new ArrayList<>();
+        rawTravel(rawList, resultList);
+        LessonListResponse resp = new LessonListResponse();
+        resp.setTotal((int) total);
+        resp.setList(resultList);
+        return resp;
+    }
+
+    private boolean isValidResourceType(String resourceType) {
+        if (resourceType == null) return false;
+        return resourceType.equals("video") ||
+                resourceType.equals("audio") ||
+                resourceType.equals("document") ||
+                resourceType.equals("image") ||
+                resourceType.equals("link") ||
+                resourceType.equals("other");
     }
 }

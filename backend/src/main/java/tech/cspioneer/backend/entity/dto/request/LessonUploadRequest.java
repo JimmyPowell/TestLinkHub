@@ -37,9 +37,14 @@ public class LessonUploadRequest {
      * 资源URL列表
      */
     private List<String> resourcesUrls;
+
+    /**
+     * 资源名称列表
+     */
+    private List<String> resourceNames;
     
     /**
      * 排序顺序列表
      */
     private List<Integer> sortOrders;
-} 
+}

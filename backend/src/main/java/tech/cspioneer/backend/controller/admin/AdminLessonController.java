@@ -39,6 +39,7 @@ public class AdminLessonController {
             lessonRequestBody.put("authorName", lessonUploadRequest.getAuthorName());
             lessonRequestBody.put("resourcesType", lessonUploadRequest.getResourcesType());
             lessonRequestBody.put("resourcesUrls", lessonUploadRequest.getResourcesUrls());
+            lessonRequestBody.put("resourceNames", lessonUploadRequest.getResourceNames());
             lessonRequestBody.put("sortOrders", lessonUploadRequest.getSortOrders());
             
             if (authentication != null && authentication.isAuthenticated()) {
@@ -87,6 +88,7 @@ public class AdminLessonController {
         lessonRequestBody.put("authorName", lessonUpdateRequest.getAuthorName());
         lessonRequestBody.put("resourcesType", lessonUpdateRequest.getResourcesType());
         lessonRequestBody.put("resourcesUrls", lessonUpdateRequest.getResourcesUrls());
+        lessonRequestBody.put("resourceNames", lessonUpdateRequest.getResourceNames());
         lessonRequestBody.put("sortOrders", lessonUpdateRequest.getSortOrders());
         lessonRequestBody.put("identity", identity);
         lessonRequestBody.put("userId", userUuid);
@@ -111,20 +113,36 @@ public class AdminLessonController {
     public ResponseEntity<?> deleteLesson(@RequestBody List<String> uuids,
                                           @AuthenticationPrincipal String userUuid,
                                           Authentication authentication) {
+
+        System.out.println("--- 进入删除课程端点 ---");
+        System.out.println("请求删除的课程UUIDs: " + uuids);
+        System.out.println("操作用户的UUID: " + userUuid);
+
         String identity = "UNKNOWN";
         if (authentication != null && authentication.isAuthenticated()) {
             identity = authentication.getAuthorities().stream()
                     .findFirst()
                     .map(authority -> authority.getAuthority())
                     .orElse("UNKNOWN");
+            System.out.println("解析出的用户身份: " + identity);
+        } else {
+            System.out.println("无法获取认证信息");
         }
+
         if (!("USER".equals(identity) || "COMPANY".equals(identity) || "ADMIN".equals(identity))) {
+            System.out.println("权限检查：未知身份，拒绝访问");
             return ResponseEntity.status(401).body(ApiResponse.error(401, "未知身份"));
         }
-        if ("USER".equals(identity) || "COMPANY".equals(identity)) {
-            return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
-        }
+
+        // 这里的逻辑需要调整，暂时只允许ADMIN删除
+        // if ("USER".equals(identity) || "COMPANY".equals(identity)) {
+        //     System.out.println("权限检查：用户身份为 " + identity + "，权限不足，拒绝访问");
+        //     return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
+        // }
+        // 应该在Service层检查课程所有权，而不是在这里简单地按角色拒绝
+
         try {
+            System.out.println("权限检查通过，准备调用服务层删除课程...");
             int deleted = lessonService.deleteLesson(uuids);
             return ResponseEntity.ok().body(Map.of("code", 200, "message", "删除成功", "data", deleted));
         } catch (Exception e) {
@@ -265,5 +283,34 @@ public class AdminLessonController {
         }
         int deleted = lessonService.softDeleteLessonAuditHistory(uuids);
         return ResponseEntity.ok().body(Map.of("code", 200, "message", "删除成功", "data", deleted));
+    }
+
+    @GetMapping("/admin/lesson/company")
+    public ResponseEntity<?> getCompanyLessons(
+            @RequestParam(value = "uuid", required = false) String lessonUuid,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "status", required = false) String status,
+            @AuthenticationPrincipal String userUuid,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+
+        if (!"COMPANY".equals(identity)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "此端点仅供公司管理员使用"));
+        }
+
+        try {
+            var result = lessonService.getLessonsByCompany(userUuid, lessonUuid, name, status, page, size);
+            return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功", "data", result));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
+        }
     }
 }

@@ -10,4 +10,6 @@ public class LessonListItemResponse {
     private String authorName;
     private Integer version;
     private String uuid;
-} 
+    private String status;
+    private String updatedAt;
+}
