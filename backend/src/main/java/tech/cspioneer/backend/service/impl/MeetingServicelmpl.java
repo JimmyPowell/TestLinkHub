@@ -446,6 +446,33 @@ public class MeetingServicelmpl implements MeetingService {
 
         return version;
     }
+    @Override
+    public List<RootReviewResponse> searchMeetingVersionsByName(String name, int page, int size) {
+        int offset = (page - 1) * size;
+        List<MeetingVersion> versions = meetingVersionMapper.searchByName(name, offset, size);
+        return versions.stream().map(this::convertToRootReview).toList();
+    }
+
+    @Override
+    public List<RootReviewResponse> searchMeetingVersionsByStartTimeRange(LocalDateTime start,
+                                                                          LocalDateTime end,
+                                                                          int page, int size) {
+        int offset = (page - 1) * size;
+        List<MeetingVersion> versions = meetingVersionMapper.searchByStartTimeRange(start, end, offset, size);
+        return versions.stream().map(this::convertToRootReview).toList();
+    }
+
+    @Override
+    public List<RootReviewResponse> searchMeetingVersionsByUuid(String uuid, int page, int size) {
+        int offset = (page - 1) * size;
+        List<MeetingVersion> versions = meetingVersionMapper.searchByUuid(uuid, offset, size);
+        return versions.stream().map(this::convertToRootReview).toList();
+    }
+
+
+
+
+
 
 
 }

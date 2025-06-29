@@ -51,5 +51,10 @@ public interface MeetingService {
     );
     public MeetingVersion getMeetingVersionDetail(String versionUuid, String userUuid);
 
+    List<RootReviewResponse> searchMeetingVersionsByName(String name, int page, int size);
+
+    List<RootReviewResponse> searchMeetingVersionsByStartTimeRange(LocalDateTime start, LocalDateTime end, int page, int size);
+
+    List<RootReviewResponse> searchMeetingVersionsByUuid(String uuid, int page, int size);
 
 }

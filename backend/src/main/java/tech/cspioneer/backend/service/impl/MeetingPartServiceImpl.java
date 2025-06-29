@@ -157,28 +157,30 @@ public class MeetingPartServiceImpl implements MeetingPartService {
 
 
 
-    @Override
     public void joinMeeting(MeetingParticipantRequest request, String useruuid) {
         if (request == null || request.getMeetingUuid() == null || request.getMeetingUuid().trim().isEmpty()) {
             throw new IllegalArgumentException("会议 UUID 不能为空");
         }
-        // 1. 查找会议 ID
         Meeting meeting = meetingMapper.findByUuid(request.getMeetingUuid());
         if (meeting == null) {
             throw new IllegalArgumentException("会议不存在");
         }
         Long meetingId = meeting.getId();
 
-        // 2. 查找用户 ID
         User user = userMapper.findByUuid(useruuid);
         if (user == null) {
             throw new IllegalArgumentException("用户不存在");
         }
         Long userId = user.getId();
 
-        // 3. 插入记录
+        // 判断是否重复报名
+        boolean alreadyJoined = meetingParticipantMapper.existsByMeetingIdAndUserId(meetingId, userId);
+        if (alreadyJoined) {
+            throw new IllegalArgumentException("用户已报名该会议");
+        }
+
         MeetingParticipant participant = MeetingParticipant.builder()
-                .uuid(UUID.randomUUID().toString())   // 生成唯一uuid
+                .uuid(UUID.randomUUID().toString())
                 .meetingId(meetingId)
                 .userId(userId)
                 .joinReason(request.getJoinReason())
@@ -187,8 +189,27 @@ public class MeetingPartServiceImpl implements MeetingPartService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        System.out.println("插入参会申请详情"+participant.toString());
-
         meetingParticipantMapper.insertParticipant(participant);
     }
+
+    @Override
+    public void cancelParticipation(String partUuid, String userUuid) {
+        // 1. 查找参会申请
+        MeetingParticipant participant = meetingParticipantMapper.findByUuid(partUuid);
+        if (participant == null) {
+            throw new IllegalArgumentException("参会申请不存在");
+        }
+        // 2. 校验是否为当前用户的参会申请
+        User user = userMapper.findByUuid(userUuid);
+        if (user == null || !user.getId().equals(participant.getUserId())) {
+            throw new IllegalArgumentException("无权取消他人参会申请");
+        }
+        // 3. 根据业务，选择更新状态或删除记录
+        // 这里示例改状态为 canceled
+        participant.setStatus("canceled");
+        participant.setUpdatedAt(LocalDateTime.now());
+
+        meetingParticipantMapper.updateStatusByUuid(participant.getStatus(), partUuid);
+    }
+
 }

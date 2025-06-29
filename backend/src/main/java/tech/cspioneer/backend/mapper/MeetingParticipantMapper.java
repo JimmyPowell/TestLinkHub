@@ -73,5 +73,15 @@ public interface MeetingParticipantMapper {
             "VALUES (#{uuid}, #{meetingId}, #{userId}, #{joinReason}, #{createdAt}, #{status})")
     void insertParticipant(MeetingParticipant participant);
 
+    // 更新状态
+    @Update("UPDATE meeting_participant SET status = #{status}, updated_at = NOW() WHERE uuid = #{uuid}")
+    void updateStatusByUuid(@Param("status") String status, @Param("uuid") String uuid);
 
+    @Select("SELECT COUNT(1) FROM meeting_participant WHERE meeting_id = #{meetingId} AND user_id = #{userId}")
+    int countByMeetingIdAndUserId(@Param("meetingId") Long meetingId, @Param("userId") Long userId);
+
+    // 你也可以用默认的existsBy...风格，写成boolean返回值
+    default boolean existsByMeetingIdAndUserId(Long meetingId, Long userId) {
+        return countByMeetingIdAndUserId(meetingId, userId) > 0;
+    }
 }

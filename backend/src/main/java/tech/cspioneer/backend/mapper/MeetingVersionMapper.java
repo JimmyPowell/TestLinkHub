@@ -97,4 +97,30 @@ public interface MeetingVersionMapper {
 
     @Update("UPDATE meeting_version SET is_deleted = 1 WHERE meeting_id = #{meetingId}")
     void softDeleteByMeetingId(@Param("meetingId") Long meetingId);
+
+
+
+    // 1. 按名称模糊查询
+    @Select("SELECT * FROM meeting_version " +
+            "WHERE name LIKE CONCAT('%', #{name}, '%') AND is_deleted = 0 " +
+            "ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    List<MeetingVersion> searchByName(@Param("name") String name, @Param("offset") int offset, @Param("limit") int limit);
+
+    // 2. 按时间范围查询
+    @Select("SELECT * FROM meeting_version " +
+            "WHERE start_time BETWEEN #{start} AND #{end} AND is_deleted = 0 " +
+            "ORDER BY start_time DESC LIMIT #{limit} OFFSET #{offset}")
+    List<MeetingVersion> searchByStartTimeRange(@Param("start") LocalDateTime start,
+                                                @Param("end") LocalDateTime end,
+                                                @Param("offset") int offset,
+                                                @Param("limit") int limit);
+
+    // 3. 按 UUID 模糊查询
+    @Select("SELECT * FROM meeting_version " +
+            "WHERE uuid LIKE CONCAT('%', #{uuid}, '%') AND is_deleted = 0 " +
+            "ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    List<MeetingVersion> searchByUuid(@Param("uuid") String uuid,
+                                      @Param("offset") int offset,
+                                      @Param("limit") int limit);
 }
+

@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.*;
 import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingVersion;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -65,5 +66,7 @@ public interface MeetingMapper {
     WHERE creator_id = #{creatorId} AND is_deleted = 0
 """)
     List<Long> findMeetingIdsByCreatorId(@Param("creatorId") Long creatorId);
+
+
 
 }

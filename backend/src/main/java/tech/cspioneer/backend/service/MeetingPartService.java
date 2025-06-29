@@ -30,4 +30,6 @@ public interface MeetingPartService {
     List<MeetingPartResponse> getMeetingPartsByUser(String useruuid, int page, int size);
 
     void joinMeeting(MeetingParticipantRequest request, String useruuid);
+
+    void cancelParticipation(String partUuid, String useruuid);
 }
