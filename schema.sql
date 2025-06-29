@@ -298,6 +298,7 @@ CREATE TABLE `meeting_participant` (
   `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID (关联 user.id)',
   `join_reason` TEXT DEFAULT NULL COMMENT '申请参会原因',
   `status` ENUM('pending', 'approved', 'rejected', 'cancelled') NOT NULL DEFAULT 'pending' COMMENT '参会申请状态',
+  `review_comment` TEXT DEFAULT NULL COMMENT '审核意见',
   `is_deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除 0-未删除 1-已删除',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

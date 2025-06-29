@@ -18,6 +18,7 @@ public class MeetingParticipant {
     private Long userId;
     private String joinReason;
     private String status;
+    private String reviewComment;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
