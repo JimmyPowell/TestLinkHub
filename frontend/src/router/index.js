@@ -82,6 +82,18 @@ const routes = [
         meta: { title: '会议管理' }
       },
       {
+        path: 'meeting-info',
+        name: 'MeetingInfo',
+        component: () => import('../views/dashboard/MeetingInfo.vue'),
+        meta: { title: '会议信息管理' }
+      },
+      {
+        path: 'meeting-attendees',
+        name: 'MeetingAttendees',
+        component: () => import('../views/dashboard/MeetingAttendees.vue'),
+        meta: { title: '参会人员管理' }
+      },
+      {
         path: 'members',
         name: 'Members',
         component: () => import('../views/dashboard/Members.vue'),

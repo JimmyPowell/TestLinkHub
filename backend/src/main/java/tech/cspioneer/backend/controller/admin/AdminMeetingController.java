@@ -12,11 +12,13 @@ import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
-
+import tech.cspioneer.backend.entity.dto.response.MeetingVersionWithMeetingUuidResponse;
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.service.MeetingPartService;
 import tech.cspioneer.backend.service.MeetingService;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -132,12 +134,15 @@ public class AdminMeetingController {
     //获取会议创建/修改列表
     @PreAuthorize("hasAnyAuthority('COMPANY')")
     @GetMapping("/version/application/list")
-    public ResponseEntity<ApiResponse<List<MeetingVersion>>> getCreatedMeetingVersions(
+    public ResponseEntity<ApiResponse<List<MeetingVersionWithMeetingUuidResponse>>> getCreatedMeetingVersions(
             @AuthenticationPrincipal String useruuid,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        List<MeetingVersion> versions = meetingService.getMeetingVersionsByCreator(useruuid, page, size);
+        List<MeetingVersionWithMeetingUuidResponse> versions = meetingService.getMeetingVersionsByCreator(useruuid, name, startTime, endTime, page, size);
         return ResponseEntity.ok(ApiResponse.success(200, "获取创建的会议版本成功", versions));
     }
 

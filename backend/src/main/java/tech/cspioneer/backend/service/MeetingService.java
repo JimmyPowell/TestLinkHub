@@ -2,10 +2,12 @@ package tech.cspioneer.backend.service;
 
 import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
+import tech.cspioneer.backend.entity.dto.response.MeetingVersionWithMeetingUuidResponse;
 import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.mapper.MeetingMapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MeetingService {
@@ -38,7 +40,14 @@ public interface MeetingService {
 
     MeetingVersion getMeetingDetails(String meetingUuid);
 
-    public List<MeetingVersion> getMeetingVersionsByCreator(String creatorUuid, int page, int size);
+    List<MeetingVersionWithMeetingUuidResponse> getMeetingVersionsByCreator(
+            String creatorUuid,
+            String name,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            int page,
+            int size
+    );
     public MeetingVersion getMeetingVersionDetail(String versionUuid, String userUuid);
 
 

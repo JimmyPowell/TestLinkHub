@@ -26,10 +26,18 @@
           <el-icon><component is="Reading" /></el-icon>
           <span>课程管理</span>
         </el-menu-item>
-        <el-menu-item index="/dashboard/meetings">
-          <el-icon><component is="VideoCamera" /></el-icon>
-          <span>会议管理</span>
-        </el-menu-item>
+        <el-sub-menu index="/dashboard/meetings">
+          <template #title>
+            <el-icon><component is="VideoCamera" /></el-icon>
+            <span>会议管理</span>
+          </template>
+          <el-menu-item index="/dashboard/meeting-info">
+            <span>会议信息管理</span>
+          </el-menu-item>
+          <el-menu-item index="/dashboard/meeting-attendees">
+            <span>参会人员管理</span>
+          </el-menu-item>
+        </el-sub-menu>
         <el-menu-item index="/dashboard/members">
           <el-icon><component is="User" /></el-icon>
           <span>成员管理</span>

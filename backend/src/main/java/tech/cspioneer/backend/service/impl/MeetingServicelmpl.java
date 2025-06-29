@@ -3,6 +3,7 @@ package tech.cspioneer.backend.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tech.cspioneer.backend.entity.Company;
 import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingVersion;
@@ -10,6 +11,7 @@ import tech.cspioneer.backend.entity.User;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
+import tech.cspioneer.backend.entity.dto.response.MeetingVersionWithMeetingUuidResponse;
 import tech.cspioneer.backend.exception.ResourceNotFoundException;
 import tech.cspioneer.backend.mapper.*;
 import tech.cspioneer.backend.service.MeetingService;
@@ -227,6 +229,7 @@ public class MeetingServicelmpl implements MeetingService {
     }
 
     @Override
+    @Transactional
     public void deleteMeeting(String meetingUuid) {
         // 1. 查找会议是否存在
         Meeting meeting = meetingMapper.findByUuid(meetingUuid);
@@ -239,9 +242,10 @@ public class MeetingServicelmpl implements MeetingService {
         // 3. 更新数据库
         meetingMapper.update(meeting);
 
-        System.out.println("删除会议 " + meetingUuid);
+        // 4. 级联软删除所有关联的会议版本
+        meetingVersionMapper.softDeleteByMeetingId(meeting.getId());
 
-
+        System.out.println("删除会议 " + meetingUuid + " 及其所有版本");
     }
 
     @Override
@@ -353,21 +357,16 @@ public class MeetingServicelmpl implements MeetingService {
     }
 
     @Override
-    public List<MeetingVersion> getMeetingVersionsByCreator(String creatorUuid, int page, int size) {
+    public List<MeetingVersionWithMeetingUuidResponse> getMeetingVersionsByCreator(
+            String creatorUuid, String name, LocalDateTime startTime, LocalDateTime endTime, int page, int size) {
         Company company = companyMapper.findByUuid(creatorUuid);
-        Long creatorId = company.getId();
-
-        List<Long> meetingIds = meetingMapper.findMeetingIdsByCreatorId(creatorId);
-        if (meetingIds.isEmpty()) {
-            return new ArrayList<>();
+        if (company == null) {
+            throw new ResourceNotFoundException("Company", "uuid", creatorUuid);
         }
+        Long creatorId = company.getId();
+        int offset = (page - 1) * size;
 
-        List<MeetingVersion> allVersions = meetingVersionMapper.findVersionsByMeetingIds(meetingIds);
-
-        // 手动分页
-        int fromIndex = Math.min((page - 1) * size, allVersions.size());
-        int toIndex = Math.min(fromIndex + size, allVersions.size());
-        return allVersions.subList(fromIndex, toIndex);
+        return meetingVersionMapper.findMeetingVersionsByCreator(creatorId, name, startTime, endTime, offset, size);
     }
 
 
@@ -375,17 +374,27 @@ public class MeetingServicelmpl implements MeetingService {
     public MeetingVersion getMeetingVersionDetail(String versionUuid, String userUuid) {
         // 1. 获取当前版本
         MeetingVersion version = meetingVersionMapper.findByUuid(versionUuid);
-        if (version == null || version.getIsDeleted() == 1) return null;
+        if (version == null || version.getIsDeleted() == 1) {
+            throw new ResourceNotFoundException("MeetingVersion", "uuid", versionUuid);
+        }
 
         // 2. 获取该会议的主记录
         Meeting meeting = meetingMapper.findById(version.getMeetingId());
-        if (meeting == null || meeting.getIsDeleted() == 1) return null;
+        if (meeting == null || meeting.getIsDeleted() == 1) {
+            throw new ResourceNotFoundException("Meeting", "id", version.getMeetingId().toString());
+        }
 
-        // 3. 获取当前用户是否为会议创建人
+        // 3. 获取当前用户并校验权限
         Company user = companyMapper.findByUuid(userUuid);
+        if (user == null) {
+            // This case should ideally not happen if user is authenticated
+            throw new ResourceNotFoundException("User", "uuid", userUuid);
+        }
         Long companyId = user.getId();
         if (!meeting.getCreatorId().equals(companyId)) {
-            return null;
+            // For security, we can throw a generic not found, or a specific access denied exception.
+            // Throwing not found is safer as it doesn't reveal the existence of the resource.
+            throw new ResourceNotFoundException("MeetingVersion", "uuid", versionUuid);
         }
 
         return version;

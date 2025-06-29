@@ -2,7 +2,9 @@ package tech.cspioneer.backend.mapper;
 
 import org.apache.ibatis.annotations.*;
 import tech.cspioneer.backend.entity.MeetingVersion;
+import tech.cspioneer.backend.entity.dto.response.MeetingVersionWithMeetingUuidResponse;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -82,8 +84,16 @@ public interface MeetingVersionMapper {
     })
     List<MeetingVersion> findVersionsByMeetingIds(@Param("meetingIds") List<Long> meetingIds);
 
+    @SelectProvider(type = MeetingVersionSqlProvider.class, method = "findMeetingVersionsByCreatorSql")
+    List<MeetingVersionWithMeetingUuidResponse> findMeetingVersionsByCreator(
+            @Param("creatorId") Long creatorId,
+            @Param("name") String name,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime,
+            @Param("offset") int offset,
+            @Param("size") int size
+    );
 
-
-
-
+    @Update("UPDATE meeting_version SET is_deleted = 1 WHERE meeting_id = #{meetingId}")
+    void softDeleteByMeetingId(@Param("meetingId") Long meetingId);
 }
