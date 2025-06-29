@@ -16,6 +16,8 @@ import tech.cspioneer.backend.service.MeetingService;
 
 import java.util.List;
 
+
+//这里是普通用户使用的接口（！！为了方便调试，这部分接口也开放给超级管理员，后面要改回来！！）
 @RestController
 @RequestMapping("/api/user/meeting")
 public class MeetingController {
@@ -40,7 +42,7 @@ public class MeetingController {
 
     //用户获取自己的参会申请列表-/api/user/meeting/part/list/{page}{size}+
     @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
-    @GetMapping("/part/list/")
+    @GetMapping("/part/list")
     public ResponseEntity<ApiResponse<List<MeetingParticipant>>> getUserPartList(
             @RequestParam int page,
             @RequestParam int size,
@@ -52,7 +54,7 @@ public class MeetingController {
 
     //会议浏览-/api/user/meeting/list/{page}{size}+
     @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
-    @GetMapping("/list/")
+    @GetMapping("/list")
     public ResponseEntity<ApiResponse<List<MeetingVersion>>> browseMeetings(
             @RequestParam int page,
             @RequestParam int size,

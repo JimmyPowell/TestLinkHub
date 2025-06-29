@@ -40,6 +40,7 @@ public interface MeetingVersionMapper {
             0
         )
     """)
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     public void insert(MeetingVersion meetingVersion) ;
 
     //查找最大版本号

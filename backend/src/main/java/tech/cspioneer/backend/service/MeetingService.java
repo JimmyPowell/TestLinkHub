@@ -5,6 +5,7 @@ import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.response.MeetingVersionWithMeetingUuidResponse;
 import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
+import tech.cspioneer.backend.entity.dto.response.RootReviewResponse;
 import tech.cspioneer.backend.mapper.MeetingMapper;
 
 import java.time.LocalDateTime;
@@ -32,9 +33,9 @@ public interface MeetingService {
 
     void reviewMeetingCreate(MeetingReviewRequest res, String useruuid);
 
-    List<MeetingVersion> getPendingReviewList(int page, int size);
+    List<RootReviewResponse> getPendingReviewList(int page, int size);
 
-    MeetingVersion getMeetingVersionDetails(String meetingversionuuid);
+    RootReviewResponse getMeetingVersionDetails(String meetingversionuuid);
 
     List<MeetingVersion> getPublishedMeetings(int page, int size);
 

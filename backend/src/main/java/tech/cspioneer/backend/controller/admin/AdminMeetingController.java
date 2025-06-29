@@ -5,8 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import tech.cspioneer.backend.entity.Company;
-import tech.cspioneer.backend.entity.Meeting;
 import tech.cspioneer.backend.entity.MeetingParticipant;
 import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
@@ -22,6 +20,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
+//这是供公司管理员使用的接口合集
 @RestController
 @RequestMapping("/api/admin/meeting")
 public class AdminMeetingController {
@@ -31,7 +31,7 @@ public class AdminMeetingController {
     private MeetingPartService meetingPartService;
 
 
-    // 创建会议（仅公司身份可访问）
+    // 创建会议，管理员创建的会议需要申请
     @PreAuthorize("hasAuthority('COMPANY')")
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<Void>> createMeeting(

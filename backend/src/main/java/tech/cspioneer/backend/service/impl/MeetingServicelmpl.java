@@ -12,6 +12,7 @@ import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.entity.dto.response.MeetingVersionWithMeetingUuidResponse;
+import tech.cspioneer.backend.entity.dto.response.RootReviewResponse;
 import tech.cspioneer.backend.exception.ResourceNotFoundException;
 import tech.cspioneer.backend.mapper.*;
 import tech.cspioneer.backend.service.MeetingService;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -141,20 +143,19 @@ public class MeetingServicelmpl implements MeetingService {
 
     @Override
     public void createMeeting(MeetingCreateRequest res, String useruuid) {
-        Company company = getCompanyByUuid(useruuid);
-        if (company == null) {
-            System.out.println("用户不存在");
-            return;
-        }
+       //超级管理员创建会议
         LocalDateTime now = LocalDateTime.now();
-
+        User user = userMapper.findByUuid(useruuid);
+        if(user == null) {
+            System.out.println("找不到超级管理员");
+        }
         // 创建会议主表，管理员创建时，状态为published
         String meetingStatus = "published";
-        String versionStatus = "published";
+        String versionStatus = "active";
 
         Meeting meeting = Meeting.builder()
                 .uuid(UUID.randomUUID().toString())
-                .creatorId(company.getId())
+                .creatorId(user.getId())
                 .isDeleted(0)
                 .status(meetingStatus)
                 .createdAt(now)
@@ -173,25 +174,24 @@ public class MeetingServicelmpl implements MeetingService {
                 .startTime(LocalDateTime.parse(res.getStartTime()))
                 .endTime(LocalDateTime.parse(res.getEndTime()))
                 .status(versionStatus)
-                .editorId(company.getId())
+                .editorId(user.getId())
                 .createdAt(now)
                 .build();
+
         meetingVersionMapper.insert(meetingVersion);
+        System.out.println("插入后的 meeting version id = " + meetingVersion.getId()); // 👈 这必须有值
 
         // 更新主表指向最新版本
-        meeting.setPendingVersionId(meetingVersion.getId());
-        if ("published".equals(versionStatus)) {
-            meeting.setCurrentVersionId(meetingVersion.getId());
-        }
+        meeting.setCurrentVersionId(meetingVersion.getId());
+        System.out.println("<UNK> meeting id = " + meeting.getId());
         meetingMapper.update(meeting);
     }
 
     @Override
     public void updateMeeting(MeetingUpdateRequest res, String useruuid) {
-        Company company = getCompanyByUuid(useruuid);
-        if (company == null) {
-            System.out.println("用户不存在");
-            return;
+        User user = userMapper.findByUuid(useruuid);
+        if(user == null) {
+            System.out.println("超级管理员不存在");
         }
         LocalDateTime now = LocalDateTime.now();
 
@@ -200,7 +200,7 @@ public class MeetingServicelmpl implements MeetingService {
             throw new ResourceNotFoundException("Meeting", "uuid", res.getMeetingUuid());
         }
 
-        String versionStatus = "published";
+        String versionStatus = "active";
         Integer maxVersion = meetingVersionMapper.findMaxVersionByMeetingId(meeting.getId());
         int newVersion = (maxVersion == null ? 1 : maxVersion + 1);
 
@@ -214,7 +214,7 @@ public class MeetingServicelmpl implements MeetingService {
                 .startTime(LocalDateTime.parse(res.getStartTime()))
                 .endTime(LocalDateTime.parse(res.getEndTime()))
                 .status(versionStatus)
-                .editorId(company.getId())
+                .editorId(user.getId())
                 .createdAt(now)
                 .build();
 
@@ -222,6 +222,7 @@ public class MeetingServicelmpl implements MeetingService {
 
         meeting.setPendingVersionId(meetingVersion.getId());
         meeting.setUpdatedAt(now);
+        //直接更新主表对应的版本
         if ("published".equals(versionStatus)) {
             meeting.setCurrentVersionId(meetingVersion.getId());
         }
@@ -263,7 +264,11 @@ public class MeetingServicelmpl implements MeetingService {
         }
 
         // 3. 获取审核状态，统一小写处理，确保兼容 ENUM 定义
-        String auditStatus = req.getAuditStatus().toLowerCase();
+        String auditStatus = req.getAuditStatus();
+        if (auditStatus == null) {
+            throw new IllegalArgumentException("审核状态不能为空");
+        }
+        auditStatus = auditStatus.toLowerCase();
         if (!auditStatus.equals("approved") && !auditStatus.equals("rejected")) {
             throw new IllegalArgumentException("Invalid audit status: " + auditStatus);
         }
@@ -292,17 +297,54 @@ public class MeetingServicelmpl implements MeetingService {
     }
 
 
-    @Override
-    public List<MeetingVersion> getPendingReviewList(int page, int size) {
-        int offset = (page - 1) * size;
-        return meetingVersionMapper.findPendingList(offset, size);
+    private Company getCompanyById(Long editorId) {
+        Company company = companyMapper.findById(editorId);
+        if (company == null) {
+            throw new RuntimeException("未找到对应公司，ID: " + editorId);
+        }
+        return company;
+    }
+    //将meeting_version转化为无id的返回体
+    private RootReviewResponse convertToRootReview(MeetingVersion version) {
+        Meeting meeting = meetingMapper.findById(version.getMeetingId());
+        String meeting_uuid= meeting.getUuid();
+        Company company = getCompanyById(version.getEditorId());
+        String company_uuid= company.getUuid();
+
+        RootReviewResponse resp = new RootReviewResponse();
+        resp.setUuid(version.getUuid());
+        resp.setMeetingUuid(meeting_uuid);
+        resp.setVersion(version.getVersion());
+        resp.setName(version.getName());
+        resp.setDescription(version.getDescription());
+        resp.setCoverImageUrl(version.getCoverImageUrl());
+        resp.setStartTime(version.getStartTime());
+        resp.setEndTime(version.getEndTime());
+        resp.setStatus(version.getStatus());
+        resp.setEditorUuid(company_uuid);
+        resp.setCreatedAt(version.getCreatedAt());
+        return resp;
     }
 
-    @Override
-    public MeetingVersion getMeetingVersionDetails(String meetingVersionUuid) {
-        System.out.println("meetingVersionUuid<UNK>"+meetingVersionUuid);
 
-        return meetingVersionMapper.findByUuid(meetingVersionUuid);
+    //超级管理员获取申请的会议列表
+    @Override
+    public List<RootReviewResponse> getPendingReviewList(int page, int size) {
+        int offset = (page - 1) * size;
+        List<MeetingVersion> versions = meetingVersionMapper.findPendingList(offset, size);
+        return versions.stream()
+                .map(this::convertToRootReview)
+                .collect(Collectors.toList());
+    }
+
+    //超级管理员获取申请的会议详情
+    @Override
+    public RootReviewResponse getMeetingVersionDetails(String meetingVersionUuid) {
+        MeetingVersion version = meetingVersionMapper.findByUuid(meetingVersionUuid);
+        if (version == null) {
+            throw new RuntimeException("未找到该版本信息：" + meetingVersionUuid);
+        }
+        return convertToRootReview(version);
     }
 
     @Override

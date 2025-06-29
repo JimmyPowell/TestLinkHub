@@ -14,6 +14,7 @@ import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.entity.dto.response.MeetingApplicationResponse;
+import tech.cspioneer.backend.entity.dto.response.RootReviewResponse;
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.service.MeetingPartService;
 import tech.cspioneer.backend.service.MeetingService;
@@ -35,15 +36,15 @@ public class RootMeetingController {
         return ResponseEntity.ok(new ApiResponse<>(200,"审核完成",null));
     }
 
-    //审核会议浏览-/api/root/reviewlist/{page}{size}+
+    //审核会议浏览-/api/root/meeting/reviewlist/{page}{size}+
     @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/reviewlist")
-    public ResponseEntity<ApiResponse<List<MeetingVersion>>> getMeetingReviewList(
+    public ResponseEntity<ApiResponse<List<RootReviewResponse>>> getMeetingReviewList(
             @RequestParam int page,
             @RequestParam int size,
             @AuthenticationPrincipal String useruuid
     ){
-        List<MeetingVersion> reviewList = meetingService.getPendingReviewList(page, size);
+        List<RootReviewResponse> reviewList = meetingService.getPendingReviewList(page, size);
         return ResponseEntity.ok(ApiResponse.success(200, "查询成功", reviewList));
     }
 
@@ -51,11 +52,11 @@ public class RootMeetingController {
     //会议详情-/api/root/meeting/meeting_version_uuid(这是审核的时候用的，所以前端应该是会议版本列表)+
     @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/")
-    public ResponseEntity<ApiResponse<MeetingVersion>> getMeetingDetails(
+    public ResponseEntity<ApiResponse<RootReviewResponse>> getMeetingDetails(
             @RequestParam String meeting_version_uuid,
             @AuthenticationPrincipal String useruuid
     ){
-        MeetingVersion details = meetingService.getMeetingVersionDetails(meeting_version_uuid);
+        RootReviewResponse details = meetingService.getMeetingVersionDetails(meeting_version_uuid);
         return ResponseEntity.ok(ApiResponse.success(200, "获取会议版本详情成功", details));
     }
 
