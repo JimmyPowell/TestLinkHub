@@ -15,6 +15,13 @@ public interface CompanyMapper {
     Company findByCompanyCode(String companyCode);
 
     /**
+     * 根据公司id查询公司
+     * @param companyId 公司id
+     * @return 公司对象，如果不存在则返回null
+     */
+    @Select("SELECT * FROM company WHERE id = #{companyId}")
+    Company findByid(Long companyId);
+    /**
      * 根据公司代码查询公司
      * @param uuid 唯一id
      * @return 公司对象，如果不存在则返回null
@@ -47,4 +54,6 @@ public interface CompanyMapper {
             "VALUES(#{uuid}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address}, #{avatarUrl}, #{companyCode}, #{status}, #{description}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Company company);
+
+
 }

@@ -195,6 +195,7 @@ public class NewsServiceImpl implements NewsService {
         News news = newsMapper.findByUuid(uuid);
         NewsContent newsContent = newsContentMapper.findById(news.getCurrentContentId());
         NewsDetailResponse newsDetailResponse = CopyTools.copy(newsContent, NewsDetailResponse.class);
+        newsDetailResponse.setUuid(news.getUuid());
         newsDetailResponse.setContentCreatedAt(newsContent.getCreatedAt());
         newsDetailResponse.setCompanyId(news.getCompanyId());
         switch (identity){
@@ -211,7 +212,7 @@ public class NewsServiceImpl implements NewsService {
             }
             case "USER" -> {
                 User user = userMapper.findByUuid(userUuid);
-                Company company = companyMapper.findByUuid(uuid);
+                Company company = companyMapper.findByid(user.getCompanyId());
                 if (company.getId().equals(news.getCompanyId())||news.getVisible() == 1){
                     return newsDetailResponse;
                 }else {
