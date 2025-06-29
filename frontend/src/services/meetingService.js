@@ -60,7 +60,7 @@ export const getMeetingApplications = (params) => {
 
 /**
  * 审核参会申请
- * @param {object} reviewData - 审核数据 { part_uuid: string, status: 'approved' | 'rejected', comment: string }
+ * @param {object} reviewData - 审核数据 { part_uuid: string, review_result: 'approved' | 'rejected', comments: string }
  * @returns {Promise}
  */
 export const reviewMeetingApplication = (reviewData) => {

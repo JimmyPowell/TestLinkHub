@@ -2,6 +2,7 @@ package tech.cspioneer.backend.mapper;
 
 import org.apache.ibatis.annotations.*;
 import tech.cspioneer.backend.entity.MeetingParticipant;
+import tech.cspioneer.backend.entity.dto.response.MeetingApplicationResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,35 +30,27 @@ public interface MeetingParticipantMapper {
     MeetingParticipant findByUuid(@Param("uuid") String uuid);
 
     /**
-     * 审核更新参会状态
+     * 审核更新参会状态和审核意见
      */
     @Update("""
         UPDATE meeting_participant
         SET status = #{status},
-            review_comment = #{comment},
+            review_comment = #{reviewComment},
             updated_at = NOW()
         WHERE id = #{id}
     """)
-    void updateReviewResult(@Param("id") Long id,
-                            @Param("status") String status,
-                            @Param("comment") String comment);
+    void updateReviewResult(@Param("id") Long id, @Param("status") String status, @Param("reviewComment") String reviewComment);
 
 
     /**
      * 查询某个会议创建者下所有会议的参会申请（分页）
      * 假设你有 meeting 表，creator_uuid 字段为会议创建人
      */
-    @Select("""
-        SELECT mp.*
-        FROM meeting_participant mp
-        JOIN meeting m ON mp.meeting_id = m.id
-        WHERE m.creator_uuid = #{creatorUuid}
-        ORDER BY mp.created_at DESC
-        LIMIT #{limit} OFFSET #{offset}
-    """)
-    List<MeetingParticipant> findPartsByCreator(@Param("creatorUuid") String creatorUuid,
-                                                @Param("offset") int offset,
-                                                @Param("limit") int limit);
+    @SelectProvider(type = MeetingParticipantSqlProvider.class, method = "findPartsByCreator")
+    List<MeetingApplicationResponse> findPartsByCreator(@Param("creatorId") Long creatorId,
+                                                        @Param("status") String status,
+                                                        @Param("offset") int offset,
+                                                        @Param("limit") int limit);
 
 
     @Select("""

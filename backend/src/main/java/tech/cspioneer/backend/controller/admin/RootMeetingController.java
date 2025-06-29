@@ -13,6 +13,7 @@ import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
+import tech.cspioneer.backend.entity.dto.response.MeetingApplicationResponse;
 import tech.cspioneer.backend.model.response.ApiResponse;
 import tech.cspioneer.backend.service.MeetingPartService;
 import tech.cspioneer.backend.service.MeetingService;
@@ -111,12 +112,13 @@ public class RootMeetingController {
     //获取参会申请列表-/api/admin/meeting/part/list/{page}{size}
     @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/list")
-    public ResponseEntity<ApiResponse<List<MeetingParticipant>>> getMeetingPartList(
+    public ResponseEntity<ApiResponse<List<MeetingApplicationResponse>>> getMeetingPartList(
             @AuthenticationPrincipal String useruuid,
+            @RequestParam(required = false) String status,
             @RequestParam int page,
             @RequestParam int size
     ){
-        List<MeetingParticipant> list = meetingPartService.getMeetingPartsByCreator(useruuid,page,size);
+        List<MeetingApplicationResponse> list = meetingPartService.getMeetingPartsByCreator(useruuid, status, page, size);
 
         //查找改用户名下的会议的申请
         return ResponseEntity.ok(ApiResponse.success(200, "返回列表成功", list));
@@ -130,11 +132,15 @@ public class RootMeetingController {
             @RequestParam String partUuid,
             @AuthenticationPrincipal String useruuid
     ){
-        //1.判断是不是会议创建人，先从part表中找出对应的参会会议，然后看会议的创建人，然后判断这俩是否一致
         MeetingParticipant part = meetingPartService.findMeetingPartByUuid(partUuid);
+        if (part == null) {
+            return ResponseEntity.status(404).body(ApiResponse.error(404, "找不到该参会申请"));
+        }
+
+        //1.判断是不是会议创建人
         Boolean is = meetingPartService.isCreator(useruuid,part);
         if(!is){
-            return ResponseEntity.ok(ApiResponse.error(403, "您不是会议创建者，无权访问"));
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "您不是会议创建者，无权访问"));
         }
 
         //2.获取参会申请详细信息
@@ -150,13 +156,18 @@ public class RootMeetingController {
             @RequestBody MeetingPartReviewRequest req,
             @AuthenticationPrincipal String useruuid
     ) {
-        //1.查找对应的会议，确定是不是会议创建者
+        //1.查找对应的会议
         MeetingParticipant part = meetingPartService.findMeetingPartByUuid(req.getPartUuid());
+        if (part == null) {
+            return ResponseEntity.status(404).body(ApiResponse.error(404, "找不到该参会申请"));
+        }
+        
+        //2.确定是不是会议创建者
         boolean isCreator = meetingPartService.isCreator(useruuid, part);
         if (!isCreator) {
-            return ResponseEntity.ok(ApiResponse.error(403, "您不是会议创建者，无法审核此申请"));
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "您不是会议创建者，无法审核此申请"));
         }
-        //2.保存审核参会信息，
+        //3.保存审核参会信息
         meetingPartService.reviewpart(req);
         return ResponseEntity.ok(ApiResponse.success(200, "审核完成", null));
     }

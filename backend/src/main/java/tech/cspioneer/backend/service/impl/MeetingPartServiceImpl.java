@@ -68,20 +68,25 @@ public class MeetingPartServiceImpl implements MeetingPartService {
         // 获取会议信息
         Meeting meeting = meetingMapper.findById(part.getMeetingId());
         if (meeting == null) return false;
-        User user = userMapper.findByUuid(useruuid);
-        return user.getId().equals(meeting.getCreatorId());
+
+        // The user performing the action is a company admin
+        Company company = companyMapper.findByUuid(useruuid);
+        if (company == null) {
+            return false; // Or throw an exception if user should always exist
+        }
+        return company.getId().equals(meeting.getCreatorId());
     }
 
     //这是管理员获取参会申请列表的service，在这里根据管理员获取会议参会申请
     @Override
-    public List<MeetingApplicationResponse> getMeetingPartsByCreator(String useruuid, int page, int size) {
+    public List<MeetingApplicationResponse> getMeetingPartsByCreator(String useruuid, String status, int page, int size) {
         int offset = (page - 1) * size;
         Company company = companyMapper.findByUuid(useruuid);
         if (company == null) {
             throw new ResourceNotFoundException("Company", "uuid", useruuid);
         }
         Long creatorId = company.getId();
-        return meetingParticipantMapper.findPartsByCreator(creatorId, offset, size);
+        return meetingParticipantMapper.findPartsByCreator(creatorId, status, offset, size);
     }
 
     @Override
@@ -95,6 +100,9 @@ public class MeetingPartServiceImpl implements MeetingPartService {
 
         int offset = (page - 1) * size;
         User user = userMapper.findByUuid(useruuid);
+        if (user == null) {
+            throw new ResourceNotFoundException("User", "uuid", useruuid);
+        }
         Long userId = user.getId();
         return meetingParticipantMapper.findPartsByUser(userId, offset, size);
     }
@@ -106,20 +114,19 @@ public class MeetingPartServiceImpl implements MeetingPartService {
         }
         // 1. 查找会议 ID
         Meeting meeting = meetingMapper.findByUuid(request.getMeetingUuid());
-        Long meetingId = meeting.getId();
-        if (meetingId == null) {
+        if (meeting == null) {
             throw new IllegalArgumentException("会议不存在");
         }
+        Long meetingId = meeting.getId();
 
         // 2. 查找用户 ID
         User user = userMapper.findByUuid(useruuid);
-        Long userId = user.getId();
-        if (userId == null) {
+        if (user == null) {
             throw new IllegalArgumentException("用户不存在");
         }
+        Long userId = user.getId();
 
         // 3. 插入记录
-
         MeetingParticipant participant = MeetingParticipant.builder()
                 .uuid(UUID.randomUUID().toString())   // 生成唯一uuid
                 .meetingId(meetingId)
@@ -134,7 +141,4 @@ public class MeetingPartServiceImpl implements MeetingPartService {
 
         meetingParticipantMapper.insertParticipant(participant);
     }
-
-
-
 }
