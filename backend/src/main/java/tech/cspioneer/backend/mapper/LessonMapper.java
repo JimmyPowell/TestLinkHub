@@ -186,12 +186,35 @@ public interface LessonMapper {
         "WHERE l.publisher_id = (SELECT id FROM company WHERE uuid = #{companyUuid})",
         "  AND l.is_deleted = 0",
         "  AND v.id IS NOT NULL",
+        "  <if test='lessonUuid != null and lessonUuid != \"\"'>AND l.uuid = #{lessonUuid}</if>",
+        "  <if test='name != null and name != \"\"'>AND v.name LIKE CONCAT('%', #{name}, '%')</if>",
+        "  <if test='status != null and status != \"\"'>AND l.status = #{status}</if>",
         "ORDER BY l.updated_at DESC",
         "LIMIT #{limit} OFFSET #{offset}",
         "</script>"
     })
-    List<Map<String, Object>> findLessonsByCompanyUuidWithVersion(@Param("companyUuid") String companyUuid, @Param("limit") int limit, @Param("offset") int offset);
+    List<Map<String, Object>> findLessonsByCompanyUuidWithVersion(@Param("companyUuid") String companyUuid,
+                                                                  @Param("lessonUuid") String lessonUuid,
+                                                                  @Param("name") String name,
+                                                                  @Param("status") String status,
+                                                                  @Param("limit") int limit,
+                                                                  @Param("offset") int offset);
 
-    @Select("SELECT COUNT(*) FROM lesson WHERE publisher_id = (SELECT id FROM company WHERE uuid = #{companyUuid}) AND is_deleted = 0")
-    long countLessonsByCompanyUuid(@Param("companyUuid") String companyUuid);
+    @Select({
+        "<script>",
+        "SELECT COUNT(*)",
+        "FROM lesson l",
+        "LEFT JOIN lesson_version v ON (l.status = 'active' AND v.id = l.current_version_id) OR (l.status = 'pending_review' AND v.id = l.pending_version_id)",
+        "WHERE l.publisher_id = (SELECT id FROM company WHERE uuid = #{companyUuid})",
+        "  AND l.is_deleted = 0",
+        "  AND v.id IS NOT NULL",
+        "  <if test='lessonUuid != null and lessonUuid != \"\"'>AND l.uuid = #{lessonUuid}</if>",
+        "  <if test='name != null and name != \"\"'>AND v.name LIKE CONCAT('%', #{name}, '%')</if>",
+        "  <if test='status != null and status != \"\"'>AND l.status = #{status}</if>",
+        "</script>"
+    })
+    long countLessonsByCompanyUuid(@Param("companyUuid") String companyUuid,
+                                   @Param("lessonUuid") String lessonUuid,
+                                   @Param("name") String name,
+                                   @Param("status") String status);
 }

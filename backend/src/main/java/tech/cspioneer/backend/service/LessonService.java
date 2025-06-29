@@ -44,5 +44,5 @@ public interface  LessonService {
     Map<String, Object> getPendingReviewLessonsOverview(String name, String status, String lessonUuid, String companyUuid, int page, int size);
 
     // 新增：根据公司获取课程列表
-    LessonListResponse getLessonsByCompany(String companyUuid, int page, int size);
+    LessonListResponse getLessonsByCompany(String companyUuid, String lessonUuid, String name, String status, int page, int size);
 }

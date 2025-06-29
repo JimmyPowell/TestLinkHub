@@ -287,6 +287,9 @@ public class AdminLessonController {
 
     @GetMapping("/admin/lesson/company")
     public ResponseEntity<?> getCompanyLessons(
+            @RequestParam(value = "uuid", required = false) String lessonUuid,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "status", required = false) String status,
             @AuthenticationPrincipal String userUuid,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -304,7 +307,7 @@ public class AdminLessonController {
         }
 
         try {
-            var result = lessonService.getLessonsByCompany(userUuid, page, size);
+            var result = lessonService.getLessonsByCompany(userUuid, lessonUuid, name, status, page, size);
             return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功", "data", result));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));

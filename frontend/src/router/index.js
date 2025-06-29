@@ -9,6 +9,7 @@ import RegisterCompanyInfoView from '../views/RegisterCompanyInfoView.vue'
 
 // 导入仪表盘相关组件
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
+import RootLayout from '../components/layout/RootLayout.vue'
 import DashboardHome from '../views/dashboard/DashboardHome.vue'
 import ProjectList from '../views/dashboard/ProjectList.vue'
 
@@ -98,6 +99,39 @@ const routes = [
         name: 'Members',
         component: () => import('../views/dashboard/Members.vue'),
         meta: { title: '成员管理' }
+      }
+    ]
+  },
+  // 超级管理员面板
+  {
+    path: '/root',
+    component: RootLayout,
+    redirect: '/root/overview',
+    children: [
+      {
+        path: 'overview',
+        name: 'RootAdmin',
+        component: () => import('../views/dashboard/RootAdmin.vue'),
+        meta: { title: '系统概览' }
+      },
+      // We can add placeholders for other root pages
+      {
+        path: 'user-management',
+        name: 'RootUserManagement',
+        component: { template: '<div>用户管理页面，待实现</div>' },
+        meta: { title: '用户管理' }
+      },
+      {
+        path: 'company-management',
+        name: 'RootCompanyManagement',
+        component: { template: '<div>公司管理页面，待实现</div>' },
+        meta: { title: '公司管理' }
+      },
+      {
+        path: 'system-settings',
+        name: 'RootSystemSettings',
+        component: { template: '<div>系统设置页面，待实现</div>' },
+        meta: { title: '系统设置' }
       }
     ]
   },

@@ -558,10 +558,10 @@ public class LessonServiceImpl implements LessonService {
     }
 
     @Override
-    public LessonListResponse getLessonsByCompany(String companyUuid, int page, int size) {
+    public LessonListResponse getLessonsByCompany(String companyUuid, String lessonUuid, String name, String status, int page, int size) {
         int offset = page * size;
-        List<Map<String, Object>> rawList = lessonMapper.findLessonsByCompanyUuidWithVersion(companyUuid, size, offset);
-        long total = lessonMapper.countLessonsByCompanyUuid(companyUuid);
+        List<Map<String, Object>> rawList = lessonMapper.findLessonsByCompanyUuidWithVersion(companyUuid, lessonUuid, name, status, size, offset);
+        long total = lessonMapper.countLessonsByCompanyUuid(companyUuid, lessonUuid, name, status);
         List<LessonListItemResponse> resultList = new ArrayList<>();
         rawTravel(rawList, resultList);
         LessonListResponse resp = new LessonListResponse();

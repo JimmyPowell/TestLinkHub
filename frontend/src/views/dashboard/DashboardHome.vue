@@ -6,113 +6,64 @@
     </div>
 
     <el-row :gutter="20" class="stats-cards">
-      <el-col :xs="24" :sm="12" :md="6">
+      <el-col :xs="24" :sm="12" :md="8">
         <el-card shadow="hover" class="stats-card">
-          <div class="stats-icon projects">
-            <el-icon><component is="Files" /></el-icon>
+          <div class="stats-icon courses">
+            <el-icon><component is="Collection" /></el-icon>
           </div>
           <div class="stats-info">
-            <div class="stats-value">{{ stats.projects }}</div>
-            <div class="stats-title">项目总数</div>
-          </div>
-          <div class="stats-compare">
-            <span :class="stats.projectsGrowth >= 0 ? 'up' : 'down'">
-              {{ stats.projectsGrowth >= 0 ? '+' : '' }}{{ stats.projectsGrowth }}%
-            </span>
-            <span class="compare-text">较上周</span>
+            <div class="stats-value">{{ courseStats.total }}</div>
+            <div class="stats-title">课程总数</div>
           </div>
         </el-card>
       </el-col>
 
-      <el-col :xs="24" :sm="12" :md="6">
+      <el-col :xs="24" :sm="12" :md="8">
         <el-card shadow="hover" class="stats-card">
-          <div class="stats-icon testcases">
-            <el-icon><component is="Document" /></el-icon>
+          <div class="stats-icon users">
+            <el-icon><component is="User" /></el-icon>
           </div>
           <div class="stats-info">
-            <div class="stats-value">{{ stats.testcases }}</div>
-            <div class="stats-title">测试用例</div>
-          </div>
-          <div class="stats-compare">
-            <span :class="stats.testcasesGrowth >= 0 ? 'up' : 'down'">
-              {{ stats.testcasesGrowth >= 0 ? '+' : '' }}{{ stats.testcasesGrowth }}%
-            </span>
-            <span class="compare-text">较上周</span>
+            <div class="stats-value">1,234</div>
+            <div class="stats-title">总用户数</div>
           </div>
         </el-card>
       </el-col>
 
-      <el-col :xs="24" :sm="12" :md="6">
+      <el-col :xs="24" :sm="12" :md="8">
         <el-card shadow="hover" class="stats-card">
-          <div class="stats-icon success-rate">
-            <el-icon><component is="Check" /></el-icon>
+          <div class="stats-icon pending">
+            <el-icon><component is="Clock" /></el-icon>
           </div>
           <div class="stats-info">
-            <div class="stats-value">{{ stats.successRate }}%</div>
-            <div class="stats-title">测试通过率</div>
-          </div>
-          <div class="stats-compare">
-            <span :class="stats.successRateGrowth >= 0 ? 'up' : 'down'">
-              {{ stats.successRateGrowth >= 0 ? '+' : '' }}{{ stats.successRateGrowth }}%
-            </span>
-            <span class="compare-text">较上周</span>
-          </div>
-        </el-card>
-      </el-col>
-
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card shadow="hover" class="stats-card">
-          <div class="stats-icon bugs">
-            <el-icon><component is="WarningFilled" /></el-icon>
-          </div>
-          <div class="stats-info">
-            <div class="stats-value">{{ stats.bugs }}</div>
-            <div class="stats-title">Bug 总数</div>
-          </div>
-          <div class="stats-compare">
-            <span :class="stats.bugsGrowth <= 0 ? 'up' : 'down'">
-              {{ stats.bugsGrowth >= 0 ? '+' : '' }}{{ stats.bugsGrowth }}%
-            </span>
-            <span class="compare-text">较上周</span>
+            <div class="stats-value">5</div>
+            <div class="stats-title">待审核课程</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
     <div class="panel-row">
-      <el-card class="chart-panel" shadow="hover">
+      <el-card class="course-panel" shadow="hover">
         <template #header>
           <div class="panel-header">
-            <span>测试执行趋势</span>
-            <el-radio-group v-model="timePeriod" size="small">
-              <el-radio-button label="week">本周</el-radio-button>
-              <el-radio-button label="month">本月</el-radio-button>
-              <el-radio-button label="year">全年</el-radio-button>
-            </el-radio-group>
+            <span>最近更新课程</span>
+            <el-button type="primary" size="small" plain @click="goToCourseList">查看全部</el-button>
           </div>
         </template>
-        <div class="chart-container">
-          <!-- 这里可以放置图表组件 -->
-          <div class="chart-placeholder">图表区域</div>
-        </div>
-      </el-card>
-
-      <el-card class="task-panel" shadow="hover">
-        <template #header>
-          <div class="panel-header">
-            <span>近期任务</span>
-            <el-button type="primary" size="small" plain>查看全部</el-button>
-          </div>
-        </template>
-        <div class="task-list">
-          <div v-for="(task, index) in recentTasks" :key="index" class="task-item">
-            <div class="task-content">
-              <div class="task-title">{{ task.title }}</div>
-              <div class="task-desc">{{ task.description }}</div>
-            </div>
-            <div class="task-meta">
-              <div class="task-date">{{ task.dueDate }}</div>
-              <el-tag :type="getTaskStatusType(task.status)" size="small">{{ task.status }}</el-tag>
+        <div class="course-list">
+          <div v-if="loading" class="loading-placeholder">正在加载...</div>
+          <div v-else-if="recentCourses.length === 0" class="no-data-placeholder">暂无课程</div>
+          <div v-else>
+            <div v-for="course in recentCourses" :key="course.uuid" class="course-item">
+              <div class="course-content">
+                <div class="course-title">{{ course.name }}</div>
+                <div class="course-desc">作者: {{ course.authorName }}</div>
+              </div>
+              <div class="course-meta">
+                <div class="course-date">更新于: {{ course.updatedAt.split('T')[0] }}</div>
+                <el-tag :type="getCourseStatusType(course.status)" size="small">{{ course.status }}</el-tag>
+              </div>
             </div>
           </div>
         </div>
@@ -122,10 +73,58 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import courseService from '../../services/courseService';
 
+const router = useRouter();
 const userName = ref('管理员');
-const timePeriod = ref('week');
+
+const courseStats = reactive({
+  total: 0,
+});
+const recentCourses = ref([]);
+const loading = ref(true);
+
+const fetchDashboardData = async () => {
+  loading.value = true;
+  try {
+    const response = await courseService.getAllLessons({ page: 0, size: 5 }); // 获取前5条作为最近更新
+    if (response.data && response.data.data) {
+      const { list, total } = response.data.data;
+      recentCourses.value = list.map(course => ({
+        uuid: course.uuid,
+        name: course.name,
+        authorName: course.author_name,
+        status: course.status,
+        updatedAt: course.updated_at,
+      }));
+      courseStats.total = total;
+    }
+  } catch (error) {
+    ElMessage.error('获取首页数据失败');
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchDashboardData();
+});
+
+const goToCourseList = () => {
+  router.push({ name: 'Courses' });
+};
+
+const getCourseStatusType = (status) => {
+  switch (status) {
+    case 'active': return 'success';
+    case 'pending_review': return 'warning';
+    default: return 'info';
+  }
+};
 
 // 当前日期和问候语
 const currentDate = computed(() => {
@@ -143,67 +142,11 @@ const greeting = computed(() => {
   if (hour < 22) return '晚上好';
   return '夜深了';
 });
-
-// 统计数据
-const stats = reactive({
-  projects: 12,
-  projectsGrowth: 8.5,
-  testcases: 368,
-  testcasesGrowth: 12.3,
-  successRate: 92.7,
-  successRateGrowth: 3.2,
-  bugs: 24,
-  bugsGrowth: -5.8
-});
-
-// 近期任务
-const recentTasks = reactive([
-  {
-    title: '登录功能测试',
-    description: '测试用户登录功能，包括正常登录和异常处理',
-    dueDate: '今天',
-    status: '进行中'
-  },
-  {
-    title: '注册流程优化',
-    description: '优化用户注册流程，降低表单填写错误率',
-    dueDate: '明天',
-    status: '待处理'
-  },
-  {
-    title: '数据导出功能测试',
-    description: '测试数据导出为Excel和PDF格式的功能',
-    dueDate: '3天后',
-    status: '待处理'
-  },
-  {
-    title: 'API接口性能测试',
-    description: '测试核心API接口在高并发下的响应时间',
-    dueDate: '昨天',
-    status: '已完成'
-  },
-  {
-    title: '移动端兼容性测试',
-    description: '测试系统在iOS和Android平台上的兼容性问题',
-    dueDate: '2天前',
-    status: '已完成'
-  }
-]);
-
-// 获取任务状态对应的标签类型
-const getTaskStatusType = (status) => {
-  switch (status) {
-    case '进行中': return 'warning';
-    case '待处理': return 'info';
-    case '已完成': return 'success';
-    default: return '';
-  }
-};
 </script>
 
 <style scoped>
 .dashboard-home {
-  padding: 10px;
+  padding: 20px;
 }
 
 .welcome-section {
@@ -248,19 +191,15 @@ const getTaskStatusType = (status) => {
   margin-right: 16px;
 }
 
-.stats-icon.projects {
+.stats-icon.courses {
   background: linear-gradient(135deg, #36d1dc, #5b86e5);
 }
 
-.stats-icon.testcases {
+.stats-icon.users {
   background: linear-gradient(135deg, #ff9a9e, #fad0c4);
 }
 
-.stats-icon.success-rate {
-  background: linear-gradient(135deg, #43e97b, #38f9d7);
-}
-
-.stats-icon.bugs {
+.stats-icon.pending {
   background: linear-gradient(135deg, #fa709a, #fee140);
 }
 
@@ -280,39 +219,14 @@ const getTaskStatusType = (status) => {
   margin-top: 4px;
 }
 
-.stats-compare {
-  font-size: 12px;
-  margin-top: 8px;
-}
-
-.stats-compare .up {
-  color: #67c23a;
-}
-
-.stats-compare .down {
-  color: #f56c6c;
-}
-
-.compare-text {
-  color: #909399;
-  margin-left: 4px;
-}
-
 .panel-row {
   display: flex;
   gap: 20px;
   margin-bottom: 20px;
 }
 
-.chart-panel {
-  flex: 2;
-  margin-bottom: 20px;
-}
-
-.task-panel {
-  flex: 1;
-  min-width: 300px;
-  margin-bottom: 20px;
+.course-panel {
+  width: 100%;
 }
 
 .panel-header {
@@ -323,80 +237,49 @@ const getTaskStatusType = (status) => {
   color: #333;
 }
 
-.chart-container {
-  height: 400px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chart-placeholder {
-  color: #ccc;
-  font-size: 18px;
-  text-align: center;
-  border: 1px dashed #ddd;
-  padding: 150px;
-  width: 100%;
-  border-radius: 4px;
-}
-
-.task-list {
+.course-list {
   max-height: 400px;
   overflow-y: auto;
 }
 
-.task-item {
+.course-item {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
   border-bottom: 1px solid #f0f0f0;
 }
 
-.task-item:last-child {
+.course-item:last-child {
   border-bottom: none;
 }
 
-.task-content {
+.course-content {
   flex: 1;
   padding-right: 10px;
 }
 
-.task-title {
+.course-title {
   font-weight: 500;
   color: #333;
   margin-bottom: 4px;
   font-size: 14px;
 }
 
-.task-desc {
+.course-desc {
   color: #666;
   font-size: 12px;
   line-height: 1.4;
 }
 
-.task-meta {
+.course-meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
 }
 
-.task-date {
+.course-date {
   color: #909399;
   font-size: 12px;
 }
-
-@media (max-width: 768px) {
-  .panel-row {
-    flex-direction: column;
-  }
-  
-  .task-panel {
-    min-width: auto;
-  }
-  
-  .chart-placeholder {
-    padding: 80px;
-  }
-}
-</style> 
+</style>

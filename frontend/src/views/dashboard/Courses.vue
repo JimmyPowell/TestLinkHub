@@ -13,13 +13,13 @@
         </div>
         <div class="field">
           <label>课程状态</label>
-          <select v-model="searchForm.status">
-            <option value="">请选择</option>
-            <option value="active">已发布</option>
-            <option value="pending_review">待审核</option>
-          </select>
+          <el-select v-model="searchForm.status" placeholder="请选择" clearable fit-input-width style="width: 180px;">
+            <el-option label="已发布" value="active"></el-option>
+            <el-option label="待审核" value="pending_review"></el-option>
+          </el-select>
         </div>
         <button class="search-btn" @click="handleSearch">查询</button>
+        <button class="reset-btn" @click="handleReset">重置</button>
         <button class="add-btn" @click="handleUploadNewCourse">新增</button>
       </div>
     </div>
@@ -90,10 +90,14 @@ const pagination = reactive({
 const fetchLessons = async () => {
   loading.value = true;
   try {
-    const response = await courseService.getLessons({
+    const params = {
       page: pagination.page - 1,
       size: pagination.size,
-    });
+      uuid: searchForm.uuid,
+      name: searchForm.name,
+      status: searchForm.status,
+    };
+    const response = await courseService.getLessons(params);
     courses.value = response.data.data.list.map(course => ({
       uuid: course.uuid,
       name: course.name,
@@ -127,7 +131,17 @@ const handleImageError = (e) => {
 
 // 搜索操作
 const handleSearch = () => {
-  ElMessage.info('查询功能暂未实现');
+  pagination.page = 1; // Reset to first page for new search
+  fetchLessons();
+};
+
+// 重置搜索表单
+const handleReset = () => {
+  searchForm.uuid = '';
+  searchForm.name = '';
+  searchForm.status = '';
+  pagination.page = 1;
+  fetchLessons();
 };
 
 // 新增课程操作
@@ -222,7 +236,7 @@ const handleCourseSubmit = () => {
   font-size: 14px;
 }
 
-.search-btn, .add-btn {
+.search-btn, .add-btn, .reset-btn {
   padding: 8px 16px;
   border-radius: 4px;
   font-size: 14px;
@@ -240,6 +254,17 @@ const handleCourseSubmit = () => {
   background-color: #fff;
   color: #606266;
   border: 1px solid #dcdfe6;
+}
+
+.reset-btn {
+  background-color: #f5f7fa;
+  color: #909399;
+  border: 1px solid #dcdfe6;
+}
+
+.reset-btn:focus, .reset-btn:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .course-list-container {
