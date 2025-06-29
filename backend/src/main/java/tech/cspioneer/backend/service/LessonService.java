@@ -22,7 +22,7 @@ public interface  LessonService {
     LessonListResponse getAllLessons(String name, String authorName, String beginTime, String endTime, int page, int size);
 
     // 课程详情
-    LessonDetailResponse getLessonDetail(LessonDetailRequest req);
+    LessonDetailResponse getLessonDetail(String uuid, Integer page, Integer size, String userUuid, String identity);
 
 
     // 审核操作
@@ -42,4 +42,7 @@ public interface  LessonService {
 
     // 新增：公司待审核课程概览
     Map<String, Object> getPendingReviewLessonsOverview(String name, String status, String lessonUuid, String companyUuid, int page, int size);
+
+    // 新增：根据公司获取课程列表
+    LessonListResponse getLessonsByCompany(String companyUuid, int page, int size);
 }

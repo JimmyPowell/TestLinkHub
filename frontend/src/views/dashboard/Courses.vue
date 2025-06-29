@@ -2,91 +2,84 @@
   <div class="course-management">
     <!-- 搜索和操作区域 -->
     <div class="search-bar">
-      <el-form :inline="true" :model="searchForm" class="demo-form-inline">
-        <el-form-item>
-          <el-input v-model="searchForm.query" placeholder="请输入课程名称..." class="search-input"></el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-select v-model="searchForm.status" placeholder="课程状态" class="status-select">
-            <el-option label="已发布" value="published"></el-option>
-            <el-option label="未发布" value="unpublished"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch" class="search-btn">查询</el-button>
-        </el-form-item>
-        <el-form-item class="action-button">
-          <el-button type="primary" @click="handleUploadNewCourse" class="upload-btn">上传新课程</el-button>
-        </el-form-item>
-      </el-form>
+      <div class="search-fields">
+        <div class="field">
+          <label>课程UUID</label>
+          <input v-model="searchForm.uuid" placeholder="请输入" />
+        </div>
+        <div class="field">
+          <label>课程名称</label>
+          <input v-model="searchForm.name" placeholder="请输入" />
+        </div>
+        <div class="field">
+          <label>课程状态</label>
+          <select v-model="searchForm.status">
+            <option value="">请选择</option>
+            <option value="active">已发布</option>
+            <option value="pending_review">待审核</option>
+          </select>
+        </div>
+        <button class="search-btn" @click="handleSearch">查询</button>
+        <button class="add-btn" @click="handleUploadNewCourse">新增</button>
+      </div>
     </div>
 
     <!-- 课程列表 -->
-    <div class="course-list">
-      <el-row :gutter="20">
-        <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="course in courses" :key="course.id">
-          <div class="course-card">
-            <div class="course-image-container">
-              <el-image
-                :src="course.imageUrl"
-                class="course-image"
-                fit="cover"
-              >
-                <template #error>
-                  <div class="image-slot">
-                    <el-icon><Picture /></el-icon>
-                  </div>
-                </template>
-              </el-image>
-              <div v-if="course.status === 'published'" class="status-tag">已发布</div>
-            </div>
-            <div class="course-info">
-              <span class="course-title">{{ course.title }}</span>
-              <div class="course-actions">
-                <div class="action-item" @click="handlePreview(course)">
-                  <el-icon><View /></el-icon>
-                  <span>预览</span>
-                </div>
-                <div class="action-item" @click="handleEdit(course)">
-                  <el-icon><Edit /></el-icon>
-                  <span>编辑</span>
-                </div>
-                <div class="action-item delete-btn" @click="handleDelete(course)">
-                  <el-icon><Delete /></el-icon>
-                  <span>删除</span>
-                </div>
-              </div>
+    <div class="course-list-container">
+      <div v-if="loading" class="loading-placeholder">
+        正在加载...
+      </div>
+      <div v-else-if="!loading && courses.length === 0" class="no-data-placeholder">
+        暂无课程数据
+      </div>
+      <div v-else class="course-list">
+        <div v-for="course in courses" :key="course.uuid" class="course-list-item">
+          <div class="item-image">
+            <img :src="course.imageUrl" alt="课程图片" @error="handleImageError">
+          </div>
+          <div class="item-content">
+            <div class="item-title">{{ course.name }}</div>
+            <div class="item-description">{{ course.description }}</div>
+            <div class="item-meta">
+              <span>发布时间: {{ course.updatedAt || 'N/A' }}</span>
+              <span class="item-status">状态: {{ course.status }}</span>
             </div>
           </div>
-        </el-col>
-      </el-row>
+          <div class="item-actions">
+            <button class="action-btn preview-btn" @click="handlePreview(course)">预览</button>
+            <button class="action-btn edit-btn" @click="handleEdit(course)">编辑</button>
+            <button class="action-btn delete-btn" @click="handleDelete(course)">删除</button>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <!-- 课程表单对话框 -->
-    <CourseFormDialog 
+    <CourseFormDialog
       v-model="courseFormVisible"
       :course="editingCourse"
       @submit="handleCourseSubmit"
-      @close="editingCourse = null"
     />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Picture, View, Edit, Delete } from '@element-plus/icons-vue';
-import CourseFormDialog from '../../components/dashboard/CourseFormDialog.vue';
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import courseService from '../../services/courseService';
+import CourseFormDialog from '../../components/dashboard/CourseFormDialog.vue';
+
+const router = useRouter();
 
 // 搜索表单数据
 const searchForm = reactive({
-  query: '',
+  uuid: '',
+  name: '',
   status: '',
 });
 
 // 课程数据
 const courses = ref([]);
+const loading = ref(true);
 const pagination = reactive({
   page: 1,
   size: 10,
@@ -95,18 +88,28 @@ const pagination = reactive({
 
 // 获取课程列表
 const fetchLessons = async () => {
+  loading.value = true;
   try {
     const response = await courseService.getLessons({
       page: pagination.page - 1,
       size: pagination.size,
-      name: searchForm.query,
-      status: searchForm.status
     });
-    courses.value = response.data.list;
-    pagination.total = response.data.total;
+    courses.value = response.data.data.list.map(course => ({
+      uuid: course.uuid,
+      name: course.name,
+      description: course.description,
+      imageUrl: course.image_url || 'https://via.placeholder.com/160x90',
+      authorName: course.author_name,
+      version: course.version,
+      status: course.status,
+      updatedAt: course.updated_at,
+    }));
+    pagination.total = response.data.data.total;
   } catch (error) {
     ElMessage.error('获取课程列表失败');
     console.error(error);
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -114,227 +117,213 @@ onMounted(() => {
   fetchLessons();
 });
 
-// 控制课程表单对话框的显示/隐藏
-const courseFormVisible = ref(false);
-
-// --- 方法 ---
-
-const handleSearch = () => {
-  pagination.page = 1;
-  fetchLessons();
+// 图片加载错误处理
+const handleImageError = (e) => {
+  // 检查是否已经设置为占位图，避免无限循环
+  if (!e.target.src.includes('data:image')) {
+    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIGZpbGw9IiNlYWVhZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiIgc3R5bGU9ImZpbGw6I2NjYyI+572R57ucPC90ZXh0Pjwvc3ZnPg==';
+  }
 };
 
+// 搜索操作
+const handleSearch = () => {
+  ElMessage.info('查询功能暂未实现');
+};
+
+// 新增课程操作
 const handleUploadNewCourse = () => {
+  editingCourse.value = null;
   courseFormVisible.value = true;
 };
 
-// 处理课程表单提交
-const handleCourseSubmit = (formData) => {
-  // 在实际应用中，这里应该将表单数据提交到服务器
-  // 这里仅做模拟，将新课程添加到列表中
-  const newCourse = {
-    id: Date.now(),
-    title: formData.title,
-    status: 'unpublished',
-    imageUrl: formData.coverUrl || ''
-  };
-  
-  courses.value.unshift(newCourse);
-  ElMessage.success(`课程 "${formData.title}" 创建成功`);
-  fetchLessons(); // 重新获取课程列表
-};
-
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
-
+// 预览课程
 const handlePreview = (course) => {
   router.push({ name: 'CourseDetail', params: { uuid: course.uuid } });
 };
 
-const editingCourse = ref(null);
-
+// 编辑课程
 const handleEdit = (course) => {
   editingCourse.value = course;
   courseFormVisible.value = true;
 };
 
+// 删除课程
 const handleDelete = (course) => {
-  ElMessageBox.confirm(
-    `确定要删除课程《${course.title}》吗？此操作不可撤销。`,
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  )
-    .then(async () => {
-      try {
-        await courseService.deleteLesson([course.uuid]);
-        ElMessage({
-          type: 'success',
-          message: '删除成功',
-        });
-        fetchLessons(); // 重新获取课程列表
-      } catch (error) {
-        ElMessage.error('删除失败，请稍后重试');
-        console.error(error);
-      }
-    })
-    .catch(() => {
-      ElMessage({
-        type: 'info',
-        message: '已取消删除',
-      });
-    });
+  ElMessage.info(`删除功能暂未实现: ${course.name}`);
+};
+
+const courseFormVisible = ref(false);
+const editingCourse = ref(null);
+
+const handleCourseSubmit = () => {
+  courseFormVisible.value = false;
+  fetchLessons();
 };
 </script>
 
 <style scoped>
 .course-management {
-  padding: 20px;
+  padding: 15px;
   background-color: #f5f7fa;
-  min-height: calc(100vh - 60px);
+  min-height: 100vh;
 }
 
 .search-bar {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   background-color: #fff;
   padding: 15px;
   border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.search-input {
-  width: 220px;
+.search-fields {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.status-select {
-  width: 120px;
+.field {
+  margin-right: 15px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+}
+
+.field label {
+  margin-right: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.field input, .field select {
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  width: 180px;
+  font-size: 14px;
+}
+
+.search-btn, .add-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-right: 10px;
+  border: none;
 }
 
 .search-btn {
   background-color: #409eff;
+  color: white;
 }
 
-.upload-btn {
-  background-color: #409eff;
+.add-btn {
+  background-color: #fff;
+  color: #606266;
+  border: 1px solid #dcdfe6;
 }
 
-.demo-form-inline .el-form-item {
-  margin-bottom: 0;
-  margin-right: 10px;
-}
-
-.action-button {
-  float: right;
-  margin-right: 0 !important;
-}
-
-.course-list {
-  margin-top: 20px;
-}
-
-.course-card {
-  margin-bottom: 20px;
-  position: relative;
+.course-list-container {
   background-color: #fff;
   border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s;
+  min-height: 150px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.course-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
-.course-image-container {
-  position: relative;
-  width: 100%;
-  height: 120px; /* 减小高度 */
-  background-color: #f5f7fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.course-image {
-  width: 100%;
-  height: 100%;
-}
-
-.image-slot {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  background: #f5f7fa;
+.loading-placeholder, .no-data-placeholder {
+  text-align: center;
+  padding: 40px;
   color: #909399;
-  font-size: 30px;
 }
 
-.status-tag {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: #67c23a;
-  color: #fff;
-  padding: 2px 8px;
-  font-size: 12px;
-  border-radius: 2px;
+.course-list-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #ebeef5;
 }
 
-.course-info {
-  padding: 14px;
+.course-list-item:hover {
+  background-color: #f5f7fa;
 }
 
-.course-title {
+.course-list-item:last-child {
+  border-bottom: none;
+}
+
+.item-image {
+  width: 160px;
+  height: 90px;
+  margin-right: 20px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.item-content {
+  flex-grow: 1;
+}
+
+.item-title {
   font-size: 16px;
-  font-weight: bold;
-  display: block;
-  margin-bottom: 10px;
+  font-weight: 500;
+  margin-bottom: 8px;
   color: #303133;
 }
 
-.course-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid #ebeef5;
-  padding-top: 10px;
-  margin-top: 10px;
+.item-description {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.action-item {
+.item-meta {
+  font-size: 12px;
+  color: #909399;
+}
+
+.item-status {
+  margin-left: 16px;
+}
+
+.item-actions {
   display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 5px 10px;
+  margin-left: 20px;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  padding: 6px 12px;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: 8px;
+  border: none;
 }
 
-.action-item:hover {
-  background-color: #f5f7fa;
-}
-
-.action-item .el-icon {
-  margin-right: 4px;
-  font-size: 16px;
-}
-
-.action-item span {
-  line-height: 1;
-}
-
-.action-item:not(.delete-btn) {
+.preview-btn {
+  background-color: #ecf5ff;
   color: #409eff;
 }
 
+.edit-btn {
+  background-color: #f0f9eb;
+  color: #67c23a;
+}
+
 .delete-btn {
+  background-color: #fef0f0;
   color: #f56c6c;
 }
 </style>

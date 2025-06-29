@@ -266,4 +266,30 @@ public class AdminLessonController {
         int deleted = lessonService.softDeleteLessonAuditHistory(uuids);
         return ResponseEntity.ok().body(Map.of("code", 200, "message", "删除成功", "data", deleted));
     }
+
+    @GetMapping("/admin/lesson/company")
+    public ResponseEntity<?> getCompanyLessons(
+            @AuthenticationPrincipal String userUuid,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+        String identity = "UNKNOWN";
+        if (authentication != null && authentication.isAuthenticated()) {
+            identity = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority())
+                    .orElse("UNKNOWN");
+        }
+
+        if (!"COMPANY".equals(identity)) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "此端点仅供公司管理员使用"));
+        }
+
+        try {
+            var result = lessonService.getLessonsByCompany(userUuid, page, size);
+            return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功", "data", result));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
+        }
+    }
 }

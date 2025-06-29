@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="新建课程"
+    :title="isEditMode ? '编辑课程' : '新建课程'"
     width="60%"
     :before-close="handleClose"
     :close-on-click-modal="false"
@@ -47,7 +47,7 @@
       <div class="video-section">
         <div v-if="courseForm.videos.length === 0" class="no-videos">
           <el-icon class="video-icon"><VideoPlay /></el-icon>
-          <div class="video-text">还没有添加视频，点击上方按钮开始添加</div>
+          <div class="video-text">还没有添加视频，点击下方按钮开始添加</div>
         </div>
         <div v-else>
           <div 
@@ -99,18 +99,18 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">创建课程</el-button>
+        <el-button type="primary" @click="handleSubmit">{{ isEditMode ? '保存' : '创建课程' }}</el-button>
       </span>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive, defineEmits, defineProps, watch } from 'vue';
+import { ref, reactive, defineEmits, defineProps, watch, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Picture, Upload, VideoPlay, Operation, Delete, Plus } from '@element-plus/icons-vue';
 import courseService from '../../services/courseService';
-import ossService from '../../services/ossService'; // 假设有一个ossService
+import ossService from '../../services/ossService';
 
 const props = defineProps({
   modelValue: {
@@ -128,22 +128,31 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 const dialogVisible = ref(props.modelValue);
 const dragIndex = ref(-1);
 
+const isEditMode = computed(() => !!props.course);
+
 // 监听modelValue属性变化
 watch(() => props.modelValue, (newVal) => {
   dialogVisible.value = newVal;
-  if (newVal && props.course) {
-    // 编辑模式，填充表单
-    courseForm.title = props.course.title;
-    courseForm.description = props.course.description;
-    courseForm.coverUrl = props.course.imageUrl;
-    // 注意：视频和文件需要单独处理
-  } else {
-    // 新建模式，重置表单
-    courseForm.title = '';
-    courseForm.description = '';
-    courseForm.coverUrl = '';
-    courseForm.coverFile = null;
-    courseForm.videos = [];
+  if (newVal) {
+    if (props.course) {
+      // 编辑模式，填充表单
+      courseForm.title = props.course.name;
+      courseForm.description = props.course.description;
+      courseForm.coverUrl = props.course.imageUrl;
+      courseForm.videos = props.course.resources ? props.course.resources.map((r, i) => ({
+        id: i,
+        name: r.name || `视频 ${i + 1}`,
+        url: r.resourcesUrl,
+        file: null
+      })) : [];
+    } else {
+      // 新建模式，重置表单
+      courseForm.title = '';
+      courseForm.description = '';
+      courseForm.coverUrl = '';
+      courseForm.coverFile = null;
+      courseForm.videos = [];
+    }
   }
 });
 
@@ -180,28 +189,21 @@ const removeVideo = (index) => {
 const handleDragStart = (event, index) => {
   dragIndex.value = index;
   event.dataTransfer.effectAllowed = 'move';
-  // 添加一些视觉反馈
   event.target.classList.add('dragging');
 };
 
 // 处理放置
 const handleDrop = (event, index) => {
   event.preventDefault();
-  // 移除视觉反馈
   document.querySelectorAll('.video-item').forEach(item => {
     item.classList.remove('dragging');
   });
   
   if (dragIndex.value !== index) {
-    // 获取被拖拽的项
     const draggedItem = courseForm.videos[dragIndex.value];
-    // 创建新数组（不直接修改原数组）
     const updatedVideos = [...courseForm.videos];
-    // 移除拖拽项
     updatedVideos.splice(dragIndex.value, 1);
-    // 在新位置插入拖拽项
     updatedVideos.splice(index, 0, draggedItem);
-    // 更新数组
     courseForm.videos = updatedVideos;
   }
   dragIndex.value = -1;
@@ -238,48 +240,29 @@ const handleClose = () => {
 
 // 提交表单
 const handleSubmit = async () => {
-  // 表单验证
-  if (!courseForm.title) {
-    ElMessage.warning('请输入课程标题');
-    return;
-  }
-
-  if (!courseForm.description) {
-    ElMessage.warning('请输入课程描述');
-    return;
-  }
-
-  if (!courseForm.coverUrl) {
-    ElMessage.warning('请上传课程封面');
-    return;
-  }
-
-  if (courseForm.videos.some(video => !video.url)) {
-    ElMessage.warning('请确保所有视频都已上传');
+  if (!courseForm.title || !courseForm.description || !courseForm.coverUrl) {
+    ElMessage.warning('请填写完整的课程基本信息');
     return;
   }
 
   try {
-    // 提交课程数据
     const lessonData = {
-      title: courseForm.title,
+      name: courseForm.title,
       description: courseForm.description,
-      coverUrl: courseForm.coverUrl,
-      authorName: '当前用户', // 假设作者是当前用户
+      imageUrl: courseForm.coverUrl,
+      authorName: '当前用户',
       videos: courseForm.videos
     };
 
-    if (props.course) {
-      // 编辑模式
+    if (isEditMode.value) {
       await courseService.updateLesson(props.course.uuid, lessonData);
       ElMessage.success('课程更新成功');
     } else {
-      // 新建模式
       await courseService.uploadLesson(lessonData);
       ElMessage.success('课程创建成功');
     }
 
-    emit('submit', courseForm);
+    emit('submit');
     dialogVisible.value = false;
   } catch (error) {
     ElMessage.error('操作失败，请稍后重试');
@@ -296,14 +279,12 @@ const handleSubmit = async () => {
   padding-bottom: 10px;
   border-bottom: 1px solid #ebeef5;
 }
-
 .cover-upload-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
 }
-
 .cover-placeholder {
   width: 240px;
   height: 135px;
@@ -316,27 +297,22 @@ const handleSubmit = async () => {
   color: #8c939d;
   background-color: #f5f7fa;
 }
-
 .cover-image {
   width: 240px;
   height: 135px;
   border-radius: 6px;
   object-fit: cover;
 }
-
 .upload-icon {
   font-size: 28px;
   margin-bottom: 8px;
 }
-
 .upload-text {
   font-size: 14px;
 }
-
 .video-section {
   margin-top: 10px;
 }
-
 .no-videos {
   display: flex;
   flex-direction: column;
@@ -347,16 +323,13 @@ const handleSubmit = async () => {
   border-radius: 6px;
   color: #909399;
 }
-
 .video-icon {
   font-size: 40px;
   margin-bottom: 10px;
 }
-
 .video-text {
   font-size: 14px;
 }
-
 .video-item {
   display: flex;
   align-items: center;
@@ -366,13 +339,11 @@ const handleSubmit = async () => {
   border-radius: 6px;
   background-color: #fff;
 }
-
 .drag-handle {
   cursor: move;
   padding: 0 10px;
   color: #909399;
 }
-
 .video-preview {
   width: 80px;
   height: 45px;
@@ -384,32 +355,26 @@ const handleSubmit = async () => {
   margin-right: 15px;
   color: #909399;
 }
-
 .video-info {
   flex: 1;
   margin-right: 15px;
 }
-
 .video-actions {
   display: flex;
   gap: 10px;
 }
-
 .add-video-container {
   display: flex;
   justify-content: center;
   margin-top: 20px;
 }
-
 .add-video-btn {
   width: 200px;
 }
-
 .video-item.dragging {
   opacity: 0.5;
   background: #c8ebfb;
 }
-
 .dialog-footer {
   display: flex;
   justify-content: flex-end;

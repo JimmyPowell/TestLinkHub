@@ -169,4 +169,29 @@ public interface LessonMapper {
         @Param("lessonUuid") String lessonUuid,
         @Param("companyId") Long companyId
     );
+
+    @Select({
+        "<script>",
+        "SELECT",
+        "  l.uuid AS uuid,",
+        "  v.name AS name,",
+        "  v.image_url AS image_url,",
+        "  v.description AS description,",
+        "  v.author_name AS author_name,",
+        "  v.version AS version,",
+        "  l.status as status,",
+        "  l.updated_at as updated_at",
+        "FROM lesson l",
+        "LEFT JOIN lesson_version v ON (l.status = 'active' AND v.id = l.current_version_id) OR (l.status = 'pending_review' AND v.id = l.pending_version_id)",
+        "WHERE l.publisher_id = (SELECT id FROM company WHERE uuid = #{companyUuid})",
+        "  AND l.is_deleted = 0",
+        "  AND v.id IS NOT NULL",
+        "ORDER BY l.updated_at DESC",
+        "LIMIT #{limit} OFFSET #{offset}",
+        "</script>"
+    })
+    List<Map<String, Object>> findLessonsByCompanyUuidWithVersion(@Param("companyUuid") String companyUuid, @Param("limit") int limit, @Param("offset") int offset);
+
+    @Select("SELECT COUNT(*) FROM lesson WHERE publisher_id = (SELECT id FROM company WHERE uuid = #{companyUuid}) AND is_deleted = 0")
+    long countLessonsByCompanyUuid(@Param("companyUuid") String companyUuid);
 }

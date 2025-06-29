@@ -14,6 +14,7 @@ public class LessonResources {
     private Long id;
     private String uuid;
     private Long lessonVersionId;
+    private String name;
     private String resourcesUrl;
     private String resourcesType; // video, audio, document, image, link, other
     private Integer sortOrder;

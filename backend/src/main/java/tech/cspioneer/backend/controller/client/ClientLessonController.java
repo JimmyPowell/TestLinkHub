@@ -57,10 +57,6 @@ public class ClientLessonController {
                                              @RequestParam(defaultValue = "10") Integer size,
                                              @AuthenticationPrincipal String userUuid,
                                              Authentication authentication) {
-        LessonDetailRequest req = new LessonDetailRequest();
-        req.setUuid(uuid);
-        req.setPage(page);
-        req.setSize(size);
         String identity = "UNKNOWN";
         if (authentication != null && authentication.isAuthenticated()) {
             identity = authentication.getAuthorities().stream()
@@ -72,7 +68,7 @@ public class ClientLessonController {
             return ResponseEntity.status(401).body(ApiResponse.error(401, "未知身份"));
         }
         try {
-            LessonDetailResponse result = lessonService.getLessonDetail(req);
+            LessonDetailResponse result = lessonService.getLessonDetail(uuid, page, size, userUuid, identity);
             return ResponseEntity.ok().body(Map.of("code", 200, "message", "查询成功，详细信息如下", "data", result));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
