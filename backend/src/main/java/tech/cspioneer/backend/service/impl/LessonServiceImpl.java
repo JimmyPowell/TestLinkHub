@@ -343,8 +343,10 @@ public class LessonServiceImpl implements LessonService {
             dto.setAuthorName((String) row.get("author_name"));
             dto.setVersion(row.get("version") != null ? ((Number)row.get("version")).intValue() : null);
             dto.setUuid((String) row.get("uuid"));
-            dto.setStatus((String) row.get("status"));
-            dto.setUpdatedAt(row.get("updated_at").toString());
+            Object statusObj = row.get("status");
+            dto.setStatus(statusObj != null ? statusObj.toString() : null);
+            Object updatedAtObj = row.get("updated_at");
+            dto.setUpdatedAt(updatedAtObj != null ? updatedAtObj.toString() : null);
             resultList.add(dto);
         }
     }
