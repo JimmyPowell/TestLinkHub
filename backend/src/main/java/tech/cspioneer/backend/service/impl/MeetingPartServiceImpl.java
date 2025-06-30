@@ -196,20 +196,22 @@ public class MeetingPartServiceImpl implements MeetingPartService {
     public void cancelParticipation(String partUuid, String userUuid) {
         // 1. 查找参会申请
         MeetingParticipant participant = meetingParticipantMapper.findByUuid(partUuid);
+        System.out.println("找到参会申请"+participant.toString());
         if (participant == null) {
             throw new IllegalArgumentException("参会申请不存在");
         }
         // 2. 校验是否为当前用户的参会申请
         User user = userMapper.findByUuid(userUuid);
+        System.out.println("找到当前用户"+user.toString());
         if (user == null || !user.getId().equals(participant.getUserId())) {
             throw new IllegalArgumentException("无权取消他人参会申请");
         }
         // 3. 根据业务，选择更新状态或删除记录
-        // 这里示例改状态为 canceled
-        participant.setStatus("canceled");
-        participant.setUpdatedAt(LocalDateTime.now());
-
-        meetingParticipantMapper.updateStatusByUuid(participant.getStatus(), partUuid);
+        // 这里改状态为 cancelLed
+        int updated = meetingParticipantMapper.updateStatusAndSoftDeleteByUuid("cancelled", 1, partUuid);
+        if (updated == 0) {
+            throw new RuntimeException("取消失败：记录未更新");
+        }
     }
 
 }

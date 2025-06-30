@@ -74,8 +74,9 @@ public interface MeetingParticipantMapper {
     void insertParticipant(MeetingParticipant participant);
 
     // 更新状态
-    @Update("UPDATE meeting_participant SET status = #{status}, updated_at = NOW() WHERE uuid = #{uuid}")
-    void updateStatusByUuid(@Param("status") String status, @Param("uuid") String uuid);
+    @Update("UPDATE meeting_participant SET status = #{status}, is_deleted = #{isDeleted}, updated_at = NOW() WHERE uuid = #{uuid}")
+    int updateStatusAndSoftDeleteByUuid(@Param("status") String status, @Param("isDeleted") Integer isDeleted, @Param("uuid") String uuid);
+
 
     @Select("SELECT COUNT(1) FROM meeting_participant WHERE meeting_id = #{meetingId} AND user_id = #{userId}")
     int countByMeetingIdAndUserId(@Param("meetingId") Long meetingId, @Param("userId") Long userId);
