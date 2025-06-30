@@ -234,7 +234,8 @@ public class AdminLessonController {
         approvalBody.put("auditStatus", approvalRequest.getAuditStatus());
         approvalBody.put("comment", approvalRequest.getComment());
         approvalBody.put("auditorId", auditorId);
-        
+        System.out.println(approvalBody);
+
         int result = lessonService.approveLesson(uuid, approvalBody);
         if (result == 1) {
             return ResponseEntity.ok(ApiResponse.success(200, "审批操作成功", null));
@@ -246,6 +247,9 @@ public class AdminLessonController {
     @GetMapping("/root/lesson/review/list")
     public ResponseEntity<?> getLessonReviewList(@RequestParam(defaultValue = "0") Integer size,
                                                  @RequestParam(defaultValue = "10") Integer page,
+                                                 @RequestParam(required = false) String status,
+                                                 @RequestParam(required = false) String name,
+                                                 @RequestParam(required = false) String companyName,
                                                  @AuthenticationPrincipal String userUuid,
                                                  Authentication authentication) {
         String identity = "UNKNOWN";
@@ -259,7 +263,7 @@ public class AdminLessonController {
             return ResponseEntity.status(403).body(ApiResponse.error(403, "权限不足"));
         }
         int offset = page * size;
-        List<Map<String, Object>> list = lessonService.getReviewLessonsWithPendingVersion(size, offset);
+        List<Map<String, Object>> list = lessonService.getReviewLessonsWithPendingVersion(size, offset, status, name, companyName);
         Map<String, Object> resp = new HashMap<>();
         resp.put("code", 200);
         resp.put("message", "查询成功，待审核课程如下");
@@ -283,6 +287,18 @@ public class AdminLessonController {
         }
         int deleted = lessonService.softDeleteLessonAuditHistory(uuids);
         return ResponseEntity.ok().body(Map.of("code", 200, "message", "删除成功", "data", deleted));
+    }
+
+    @GetMapping("/root/lesson/detail/{uuid}")
+    public ResponseEntity<?> getLessonDetailForRoot(@PathVariable String uuid) {
+        try {
+            Map<String, Object> detail = lessonService.getLessonDetailForRoot(uuid);
+            return ResponseEntity.ok(ApiResponse.success(detail));
+        } catch (LessonServiceException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(404, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error(5000, "服务器内部错误"));
+        }
     }
 
     @GetMapping("/admin/lesson/company")

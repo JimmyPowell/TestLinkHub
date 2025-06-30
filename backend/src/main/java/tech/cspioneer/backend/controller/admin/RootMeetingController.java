@@ -11,6 +11,8 @@ import tech.cspioneer.backend.entity.MeetingParticipant;
 import tech.cspioneer.backend.entity.MeetingVersion;
 import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingDeleteRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingDeleteRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
 import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
 import tech.cspioneer.backend.entity.dto.response.MeetingApplicationResponse;
@@ -42,21 +44,22 @@ public class RootMeetingController {
     public ResponseEntity<ApiResponse<List<RootReviewResponse>>> getMeetingReviewList(
             @RequestParam int page,
             @RequestParam int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String name,
             @AuthenticationPrincipal String useruuid
     ){
-        List<RootReviewResponse> reviewList = meetingService.getPendingReviewList(page, size);
+        List<RootReviewResponse> reviewList = meetingService.getPendingReviewList(page, size, status, name);
         return ResponseEntity.ok(ApiResponse.success(200, "查询成功", reviewList));
     }
 
 
     //会议详情-/api/root/meeting/meeting_version_uuid(这是审核的时候用的，所以前端应该是会议版本列表)+
     @PreAuthorize("hasAuthority('ADMIN')")
-    @GetMapping("/")
+    @GetMapping("/{meetingVersionUuid}")
     public ResponseEntity<ApiResponse<RootReviewResponse>> getMeetingDetails(
-            @RequestParam String meeting_version_uuid,
-            @AuthenticationPrincipal String useruuid
+            @PathVariable String meetingVersionUuid
     ){
-        RootReviewResponse details = meetingService.getMeetingVersionDetails(meeting_version_uuid);
+        RootReviewResponse details = meetingService.getMeetingVersionDetails(meetingVersionUuid);
         return ResponseEntity.ok(ApiResponse.success(200, "获取会议版本详情成功", details));
     }
 
@@ -97,12 +100,12 @@ public class RootMeetingController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/delete")
     public ResponseEntity<ApiResponse<Void>> deleteMeeting(
-            @RequestBody String meetingUuid,
+            @RequestBody MeetingDeleteRequest req,
             @AuthenticationPrincipal String useruuid) {
 
-        meetingService.deleteMeeting(meetingUuid);
+        meetingService.deleteMeeting(req.getMeetingUuid());
 
-        System.out.println("会议删除成功：" + meetingUuid);
+        System.out.println("会议删除成功：" + req.getMeetingUuid());
         return ResponseEntity.ok(ApiResponse.success(200, "会议删除成功", null));
     }
 

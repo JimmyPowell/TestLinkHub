@@ -10,6 +10,12 @@ public class NewsAuditDetailResponse {
      * 发布公司ID
      */
     private long companyId;
+
+    /**
+     * 发布公司名称
+     */
+    private String companyName;
+
     /**
      * 该版本创建时间
      */
@@ -26,10 +32,22 @@ public class NewsAuditDetailResponse {
      * 此版本内容的创建/修改者ID
      */
     private long publisherId;
+
+    /**
+     * 提交人名称
+     */
+    private String publisherName;
+
     /**
      * 新闻正文内容 (HTML或Markdown)
      */
     private String resourceUrl;
+
+    /**
+     * 新闻正文内容 (HTML)
+     */
+    private String content;
+
     /**
      * 新闻摘要
      */

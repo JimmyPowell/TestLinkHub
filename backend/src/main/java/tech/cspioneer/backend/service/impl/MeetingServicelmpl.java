@@ -309,7 +309,6 @@ public class MeetingServicelmpl implements MeetingService {
         Meeting meeting = meetingMapper.findById(version.getMeetingId());
         String meeting_uuid= meeting.getUuid();
         Company company = getCompanyById(version.getEditorId());
-        String company_uuid= company.getUuid();
 
         RootReviewResponse resp = new RootReviewResponse();
         resp.setUuid(version.getUuid());
@@ -321,7 +320,7 @@ public class MeetingServicelmpl implements MeetingService {
         resp.setStartTime(version.getStartTime());
         resp.setEndTime(version.getEndTime());
         resp.setStatus(version.getStatus());
-        resp.setEditorUuid(company_uuid);
+        resp.setInitiatorName(company.getName());
         resp.setCreatedAt(version.getCreatedAt());
         return resp;
     }
@@ -329,12 +328,16 @@ public class MeetingServicelmpl implements MeetingService {
 
     //超级管理员获取申请的会议列表
     @Override
-    public List<RootReviewResponse> getPendingReviewList(int page, int size) {
-        int offset = (page - 1) * size;
-        List<MeetingVersion> versions = meetingVersionMapper.findPendingList(offset, size);
+    public List<RootReviewResponse> getPendingReviewList(int page, int size, String status, String name) {
+        int offset = page * size;
+        List<MeetingVersion> versions = meetingVersionMapper.findPendingList(offset, size, status, name);
         return versions.stream()
                 .map(this::convertToRootReview)
                 .collect(Collectors.toList());
+    }
+    
+    public List<RootReviewResponse> getPendingReviewList(int page, int size) {
+        return this.getPendingReviewList(page, size, "pending_review", null);
     }
 
     //超级管理员获取申请的会议详情

@@ -33,7 +33,7 @@ public interface MeetingService {
 
     void reviewMeetingCreate(MeetingReviewRequest res, String useruuid);
 
-    List<RootReviewResponse> getPendingReviewList(int page, int size);
+    List<RootReviewResponse> getPendingReviewList(int page, int size, String status, String name);
 
     RootReviewResponse getMeetingVersionDetails(String meetingversionuuid);
 

@@ -26,4 +26,5 @@ public interface NewsService {
 
     List<NewsHistoryResponse> getNewsAuditHistoryList(String uuid, String userUuid, String identity);
 
+    void deleteNewsAsRoot(String uuid);
 }

@@ -61,8 +61,28 @@ public interface UserMapper {
      * @param user 用户对象
      * @return 受影响的行数
      */
-    @Update("UPDATE user SET name = #{name}, phone_number = #{phoneNumber}, address = #{address}, avatar_url = #{avatarUrl}, gender = #{gender}, company_id = #{companyId}, role = #{role}, status = #{status}, description = #{description}, updated_at = #{updatedAt} WHERE uuid = #{uuid}")
+    @Update("<script>"
+            + "UPDATE user "
+            + "<set>"
+            + "<if test='name != null'>name = #{name},</if>"
+            + "<if test='phoneNumber != null'>phone_number = #{phoneNumber},</if>"
+            + "<if test='address != null'>address = #{address},</if>"
+            + "<if test='avatarUrl != null'>avatar_url = #{avatarUrl},</if>"
+            + "<if test='gender != null'>gender = #{gender},</if>"
+            + "<if test='description != null'>description = #{description},</if>"
+            + "updated_at = NOW()"
+            + "</set>"
+            + " WHERE uuid = #{uuid}"
+            + "</script>")
     int update(User user);
+
+    /**
+     * 根据公司ID查询用户
+     * @param companyId 公司ID
+     * @return 用户列表
+     */
+    @Select("SELECT * FROM user WHERE company_id = #{companyId} AND is_deleted = 0")
+    List<User> findUsersByCompanyId(@Param("companyId") Long companyId);
 
     /**
      * 根据UUID删除用户 (逻辑删除)

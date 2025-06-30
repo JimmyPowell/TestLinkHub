@@ -212,6 +212,18 @@ public interface NewsMapper {
     })
     NewsAuditDetailResponse findPendingNewsDetail(@Param("uuid") String uuid);
 
+    // 查询已发布新闻详情
+    @Select({
+            "SELECT n.uuid, n.company_id as companyId, nc.created_at as contentCreatedAt, ",
+            "nc.cover_image_url as coverImageUrl, n.created_at as createdAt, ",
+            "nc.publisher_id as publisherId, nc.resource_url as resourceUrl, ",
+            "nc.summary, nc.title, nc.version ",
+            "FROM news n ",
+            "JOIN news_content nc ON n.current_content_id = nc.id ",
+            "WHERE n.uuid = #{uuid} AND n.is_deleted = 0 AND nc.is_deleted = 0"
+    })
+    NewsAuditDetailResponse findPublishedNewsDetail(@Param("uuid") String uuid);
+
     // 查询新闻历史记录
     @Select({
         "SELECT nh.uuid, nh.audit_status as auditStatus, nh.auditor_uuid as auditorUUid, ",

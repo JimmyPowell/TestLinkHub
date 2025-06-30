@@ -27,6 +27,14 @@ const newsService = {
     const snakeCaseData = convertToSnakeCase(reviewData);
     return apiClient.post(`/root/news/auditNews/${uuid}`, snakeCaseData);
   },
+
+  /**
+   * 删除新闻 (超管专用)
+   * @param {string} uuid - 新闻的UUID
+   */
+  deleteNewsAsRoot(uuid) {
+    return apiClient.delete(`/root/news/${uuid}`);
+  },
 };
 
 export default newsService;

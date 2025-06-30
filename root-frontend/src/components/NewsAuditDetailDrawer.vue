@@ -11,11 +11,14 @@
       <div v-if="detail">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="新闻标题">{{ detail.title }}</el-descriptions-item>
-          <el-descriptions-item label="提交人">{{ detail.publisherName }}</el-descriptions-item>
-          <el-descriptions-item label="所属公司">{{ detail.companyName }}</el-descriptions-item>
-          <el-descriptions-item label="提交时间">{{ detail.createdAt }}</el-descriptions-item>
+          <el-descriptions-item label="提交人">{{ detail.publisher_name }}</el-descriptions-item>
+          <el-descriptions-item label="所属公司">{{ detail.company_name }}</el-descriptions-item>
+          <el-descriptions-item label="提交时间">{{ detail.created_at }}</el-descriptions-item>
           <el-descriptions-item label="摘要">{{ detail.summary }}</el-descriptions-item>
         </el-descriptions>
+        <div class="cover-image-container">
+          <img v-if="detail.cover_image_url" :src="detail.cover_image_url" alt="封面图" class="cover-image">
+        </div>
         <div class="content-preview">
           <h3>内容预览</h3>
           <div v-html="detail.content" class="html-content"></div>
@@ -49,6 +52,7 @@ const fetchDetail = async () => {
   detail.value = null;
   try {
     const response = await newsService.getNewsAuditDetail(props.newsUuid);
+    // 后端返回的已经是完整数据，直接赋值
     detail.value = response.data.data;
   } catch (error) {
     ElMessage.error('获取新闻详情失败: ' + (error.response?.data?.message || error.message));
@@ -61,6 +65,16 @@ const fetchDetail = async () => {
 <style scoped>
 .detail-container {
   padding: 20px;
+}
+.cover-image-container {
+  text-align: center;
+  margin-top: 30px; /* 增加上方间距 */
+  margin-bottom: 20px;
+}
+.cover-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
 }
 .content-preview {
   margin-top: 20px;

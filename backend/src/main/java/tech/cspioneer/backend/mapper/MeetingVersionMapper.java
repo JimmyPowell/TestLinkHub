@@ -71,8 +71,21 @@ public interface MeetingVersionMapper {
     @Select("SELECT * FROM meeting_version WHERE id = #{id} AND is_deleted = 0")
     MeetingVersion findById(@Param("id") Long id);
 
-    @Select("SELECT * FROM meeting_version WHERE status = 'pending_review' AND is_deleted = 0 ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
-    List<MeetingVersion> findPendingList(@Param("offset") int offset, @Param("size") int size);
+    @Select({
+            "<script>",
+            "SELECT * FROM meeting_version",
+            "WHERE is_deleted = 0",
+            "<if test='status != null and !status.isEmpty()'>",
+            "  AND status = #{status}",
+            "</if>",
+            "<if test='name != null and !name.isEmpty()'>",
+            "  AND name LIKE CONCAT('%', #{name}, '%')",
+            "</if>",
+            "ORDER BY created_at DESC",
+            "LIMIT #{size} OFFSET #{offset}",
+            "</script>"
+    })
+    List<MeetingVersion> findPendingList(@Param("offset") int offset, @Param("size") int size, @Param("status") String status, @Param("name") String name);
 
     @Select({
             "<script>",
@@ -123,4 +136,3 @@ public interface MeetingVersionMapper {
                                       @Param("offset") int offset,
                                       @Param("limit") int limit);
 }
-

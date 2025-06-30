@@ -32,7 +32,7 @@ public interface  LessonService {
     LessonSearchResponse searchLesson(LessonSearchRequest req);
 
     // 审核列表
-    List<Map<String, Object>> getReviewLessonsWithPendingVersion(int pageSize, int offset);
+    List<Map<String, Object>> getReviewLessonsWithPendingVersion(int pageSize, int offset, String status, String name, String companyName);
 
     // 审核历史
     Map<String, Object> getLessonAuditHistoryPage(String auditStatus, String beginTime, String endTime, int page, int size);
@@ -45,4 +45,7 @@ public interface  LessonService {
 
     // 新增：根据公司获取课程列表
     LessonListResponse getLessonsByCompany(String companyUuid, String lessonUuid, String name, String status, int page, int size);
+
+    // 新增：超管获取课程详情
+    Map<String, Object> getLessonDetailForRoot(String uuid);
 }

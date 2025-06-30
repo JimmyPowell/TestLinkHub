@@ -15,7 +15,7 @@ public class RootReviewResponse {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String status;
-    private String editorUuid;   //editor_uuid，需要查询
+    private String initiatorName;   // 发起者名称
     private LocalDateTime createdAt;
 
 }

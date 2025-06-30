@@ -15,9 +15,13 @@ import tech.cspioneer.backend.service.NotificationService;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class LessonServiceImpl implements LessonService {
+    private static final Logger logger = LoggerFactory.getLogger(LessonServiceImpl.class);
+
     @Autowired
     private LessonMapper lessonMapper;
     @Autowired
@@ -416,13 +420,24 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     public int approveLesson(String uuid, Map<String, Object> approvalBody) {
+        logger.info("开始审批课程，UUID: {}", uuid);
         // 1. 查找课程
         Lesson lesson = lessonMapper.selectByUuid(uuid);
-        if (lesson == null) return -1;
+        if (lesson == null) {
+            logger.error("审批失败：找不到UUID为 {} 的课程。", uuid);
+            return -1;
+        }
         Long pendingVersionId = lesson.getPendingVersionId();
-        if (pendingVersionId == null) return -1;
+        System.out.println("pendingVersionId: " + pendingVersionId);
+        if (pendingVersionId == null) {
+            logger.error("审批失败：课程 {} (UUID: {}) 没有待审核的版本 (pending_version_id is null)。", lesson.getId(), uuid);
+            return -1;
+        }
         LessonVersion pendingVersion = lessonVersionMapper.selectById(pendingVersionId);
-        if (pendingVersion == null) return -1;
+        if (pendingVersion == null) {
+            logger.error("审批失败：根据 pending_version_id {} 找不到对应的课程版本。", pendingVersionId);
+            return -1;
+        }
         String result = (String) approvalBody.get("auditStatus"); // "approved" or "rejected"
         String comments = (String) approvalBody.get("comment");
         // 2. 审批通过
@@ -454,8 +469,8 @@ public class LessonServiceImpl implements LessonService {
             lesson.setStatus("active");
             lesson.setUpdatedAt(java.time.LocalDateTime.now());
             lessonMapper.update(lesson);
-            // 通知发布者
-            sendLessonApprovalNotification(lesson, pendingVersion, true, comments);;
+            // 通知发布者 (暂时注释)
+            // sendLessonApprovalNotification(lesson, pendingVersion, true, comments);
             // 插入审批历史
             insertLessonAuditHistory(pendingVersionId, auditorId, "approved", comments);
             return 1;
@@ -468,8 +483,8 @@ public class LessonServiceImpl implements LessonService {
             lesson.setStatus("archived");
             lesson.setUpdatedAt(LocalDateTime.now());
             lessonMapper.update(lesson);
-            // 通知发布者
-            sendLessonApprovalNotification(lesson, pendingVersion, false, comments);
+            // 通知发布者 (暂时注释)
+            // sendLessonApprovalNotification(lesson, pendingVersion, false, comments);
             // 插入审批历史
             insertLessonAuditHistory(pendingVersionId, auditorId, "rejected", comments);
             return 1;
@@ -506,8 +521,8 @@ public class LessonServiceImpl implements LessonService {
     }
 
     @Override
-    public List<Map<String, Object>> getReviewLessonsWithPendingVersion(int pageSize, int offset) {
-        return lessonMapper.selectReviewLessonsWithPendingVersion(pageSize, offset);
+    public List<Map<String, Object>> getReviewLessonsWithPendingVersion(int pageSize, int offset, String status, String name, String companyName) {
+        return lessonMapper.selectReviewLessons(pageSize, offset, status, name, companyName);
     }
 
     // 审批历史插入辅助方法
@@ -570,6 +585,35 @@ public class LessonServiceImpl implements LessonService {
         resp.setTotal((int) total);
         resp.setList(resultList);
         return resp;
+    }
+
+    @Override
+    public Map<String, Object> getLessonDetailForRoot(String uuid) {
+        Lesson lesson = lessonMapper.selectByUuid(uuid);
+        if (lesson == null) {
+            throw new LessonServiceException("课程不存在");
+        }
+
+        // 超管预览，优先看待审核版本，否则看当前版本
+        Long versionIdToFetch = lesson.getPendingVersionId() != null ? lesson.getPendingVersionId() : lesson.getCurrentVersionId();
+
+        if (versionIdToFetch == null) {
+            throw new LessonServiceException("该课程没有可供预览的版本");
+        }
+
+        LessonVersion version = lessonVersionMapper.selectById(versionIdToFetch);
+        if (version == null) {
+            throw new LessonServiceException("课程版本不存在");
+        }
+
+        List<LessonResources> resources = lessonResourceMapper.selectByLessonVersionId(version.getId());
+
+        Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("lesson", lesson);
+        detailMap.put("version", version);
+        detailMap.put("resources", resources);
+
+        return detailMap;
     }
 
     private boolean isValidResourceType(String resourceType) {

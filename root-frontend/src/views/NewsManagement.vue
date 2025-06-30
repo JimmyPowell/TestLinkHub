@@ -33,7 +33,6 @@
               <el-button size="small" type="danger" @click="handleReject(scope.row)">驳回</el-button>
             </template>
             <template v-else>
-              <el-button size="small" type="primary" @click="handleEdit(scope.row)">编辑</el-button>
               <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
             </template>
           </template>
@@ -160,12 +159,27 @@ const handleView = (row) => {
   isDetailDrawerVisible.value = true;
 };
 
-const handleEdit = (row) => {
-    ElMessage.info(`编辑功能待实现: ${row.title}`);
-};
-
 const handleDelete = (row) => {
-    ElMessage.info(`删除功能待实现: ${row.title}`);
+  ElMessageBox.confirm(
+    `确定要删除新闻 "${row.title}" 吗？此操作不可撤销。`,
+    '确认删除',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(async () => {
+    try {
+      await newsService.deleteNewsAsRoot(row.uuid);
+      ElMessage.success('新闻已删除');
+      fetchAuditNews(currentPage.value); // 重新加载当前页数据
+    } catch (error) {
+      ElMessage.error('删除失败: ' + (error.response?.data?.message || error.message));
+    }
+  }).catch(() => {
+    // 用户取消操作
+    ElMessage.info('已取消删除');
+  });
 };
 
 const getStatusTagType = (status) => {

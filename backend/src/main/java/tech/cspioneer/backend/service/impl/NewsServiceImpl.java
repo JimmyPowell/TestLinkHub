@@ -20,9 +20,12 @@ import tech.cspioneer.backend.service.NotificationService;
 import tech.cspioneer.backend.utils.CopyTools;
 import tech.cspioneer.backend.utils.UuidUtils;
 
+import java.io.IOException;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
 @Service
@@ -333,7 +336,45 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public NewsAuditDetailResponse getNewsAuditDetail(String uuid) {
-        return newsMapper.findPendingNewsDetail(uuid);
+        // 首先尝试获取待审核的新闻详情
+        NewsAuditDetailResponse detail = newsMapper.findPendingNewsDetail(uuid);
+
+        // 如果找不到待审核的，再尝试获取已发布的详情
+        if (detail == null) {
+            detail = newsMapper.findPublishedNewsDetail(uuid);
+        }
+
+        if (detail != null) {
+            // 获取公司名称
+            Company company = companyMapper.findById(detail.getCompanyId());
+            if (company != null) {
+                detail.setCompanyName(company.getName());
+            }
+
+            // 获取发布者名称
+            // 注意：这里的逻辑假设 publisherId 对应的是 company 表的 id
+            Company publisher = companyMapper.findById(detail.getPublisherId());
+            if (publisher != null) {
+                detail.setPublisherName(publisher.getName());
+            }
+
+            // 从 resource_url 获取 HTML 内容
+            if (detail.getResourceUrl() != null && !detail.getResourceUrl().isEmpty()) {
+                try {
+                    URL url = new URL(detail.getResourceUrl());
+                    try (Scanner scanner = new Scanner(url.openStream(), "UTF-8")) {
+                        scanner.useDelimiter("\\A");
+                        if (scanner.hasNext()) {
+                            detail.setContent(scanner.next());
+                        }
+                    }
+                } catch (IOException e) {
+                    logger.error("Error fetching content from URL: {}", detail.getResourceUrl(), e);
+                    detail.setContent("<p>无法加载内容</p>");
+                }
+            }
+        }
+        return detail;
     }
 
     @Override
@@ -407,4 +448,13 @@ public class NewsServiceImpl implements NewsService {
         }
     }
 
+    @Override
+    public void deleteNewsAsRoot(String uuid) {
+        News news = newsMapper.findByUuid(uuid);
+        if (news == null) {
+            throw new NewsServiceException("要删除的新闻不存在");
+        }
+        newsMapper.deleteById(news.getId());
+        logger.info("新闻 '{}' (UUID: {}) 已被超管删除。", news.getUuid(), uuid);
+    }
 }

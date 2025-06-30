@@ -94,6 +94,13 @@ public class AdminNewsController{
         return ResponseEntity.ok(ApiResponse.success("新闻删除成功"));
     }
 
+    @DeleteMapping("/root/news/{uuid}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> deleteNewsAsRoot(@PathVariable String uuid) {
+        newsService.deleteNewsAsRoot(uuid);
+        return ResponseEntity.ok(ApiResponse.success("新闻已由超管删除"));
+    }
+
     @GetMapping("/admin/news/all")
     @PreAuthorize("hasAnyAuthority('COMPANY','ADMIN')")
     public ResponseEntity<ApiResponse<?>> getAllNews(
