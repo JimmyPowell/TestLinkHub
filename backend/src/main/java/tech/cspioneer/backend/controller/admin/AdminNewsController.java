@@ -147,10 +147,11 @@ public class AdminNewsController{
     @GetMapping("/root/news/audit")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ApiResponse<?>> getNewsNeedToAudit(
-            @RequestParam(required = false) int page,
-            @RequestParam(required = false) int pageSize,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String status,
             @AuthenticationPrincipal String adminUuid) {
-        List<NewsAuditListResponse> newsAuditList = newsService.getNewsAuditList(page,pageSize,adminUuid);
+        List<NewsAuditListResponse> newsAuditList = newsService.getNewsAuditList(page, pageSize, status, adminUuid);
         return ResponseEntity.ok(ApiResponse.success(newsAuditList));
     }
 

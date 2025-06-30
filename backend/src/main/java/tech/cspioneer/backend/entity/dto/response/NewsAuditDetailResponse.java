@@ -1,5 +1,10 @@
 package tech.cspioneer.backend.entity.dto.response;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
 public class NewsAuditDetailResponse {
     /**
      * 发布公司ID

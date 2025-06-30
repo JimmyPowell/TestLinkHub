@@ -178,19 +178,26 @@ public interface NewsMapper {
 
     // 查询待审核新闻列表
     @Select({
-            "SELECT n.uuid, n.company_id as companyId, nc.created_at as contentCreatedAt, ",
-            "nc.cover_image_url as coverImageUrl, n.created_at as createdAt, ",
-            "nc.publisher_id as publisherId, nc.summary, nc.title, nc.version ",
-            "FROM news n ",
-            "JOIN news_content nc ON n.pending_content_id = nc.id ",
-            "WHERE n.is_deleted = 0 AND nc.is_deleted = 0 ",
-            "AND n.status = 'pending' ",
-            "ORDER BY n.created_at DESC ",
-            "LIMIT #{pageSize} OFFSET (#{pageSize} * (#{page} - 1))"
+        "<script>",
+        "SELECT n.uuid, nc.uuid as news_content_uuid, n.company_id as companyId, c.name as companyName, u.name as publisherName, nc.created_at as contentCreatedAt, ",
+        "nc.cover_image_url as coverImageUrl, n.created_at as createdAt, ",
+        "nc.publisher_id as publisherId, nc.summary, nc.title, nc.version, n.status ",
+        "FROM news n ",
+        "JOIN news_content nc ON (CASE WHEN n.status = 'pending' THEN n.pending_content_id ELSE n.current_content_id END) = nc.id ",
+        "JOIN company c ON n.company_id = c.id ",
+        "JOIN user u ON nc.publisher_id = u.id ",
+        "WHERE n.is_deleted = 0 AND nc.is_deleted = 0 ",
+        "<if test='status != null and status != \"\"'>",
+        "   AND n.status = #{status} ",
+        "</if>",
+        "ORDER BY n.created_at DESC ",
+        "LIMIT #{limit} OFFSET #{offset}",
+        "</script>"
     })
-    List<NewsAuditListResponse> findPendingNewsList(
-            @Param("page") int page,
-            @Param("pageSize") int pageSize);
+    List<NewsAuditListResponse> findNewsForAuditList(
+            @Param("status") String status,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
 
     // 查询待审核新闻详情
     @Select({

@@ -326,8 +326,9 @@ public class NewsServiceImpl implements NewsService {
     }
 
     @Override
-    public List<NewsAuditListResponse> getNewsAuditList(int page, int pageSize, String adminUuid) {
-        return newsMapper.findPendingNewsList(page,pageSize);
+    public List<NewsAuditListResponse> getNewsAuditList(int page, int pageSize, String status, String adminUuid) {
+        int offset = page * pageSize;
+        return newsMapper.findNewsForAuditList(status, pageSize, offset);
     }
 
     @Override
@@ -337,7 +338,10 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public void auditNews(String uuid, String adminUuid, NewsAuditReviewRequest newsAuditReviewRequest) {
-        User admin = userMapper.findByUuid(uuid);
+        User admin = userMapper.findByUuid(adminUuid);
+        if (admin == null) {
+            throw new NewsServiceException("Auditor (admin) not found.");
+        }
         switch (newsAuditReviewRequest.getAuditStatus()){
             case "rejected" ->{
                 News news = newsMapper.findByUuid(uuid);
@@ -359,7 +363,7 @@ public class NewsServiceImpl implements NewsService {
                     news.setPendingContentId(null);
                     newsMapper.update(news);
                 }
-                notificationService.sendSystemNotificationToUser(news.getCompanyId(),"您的新闻已被拒绝",newsAuditReviewRequest.getComment(), RelatedObjectType.COMPANY,news.getCompanyId());
+                // notificationService.sendSystemNotificationToUser(news.getCompanyId(),"您的新闻已被拒绝",newsAuditReviewRequest.getComment(), RelatedObjectType.COMPANY,news.getCompanyId());
             }
             case "approved" ->{
                 News news = newsMapper.findByUuid(uuid);
@@ -373,11 +377,12 @@ public class NewsServiceImpl implements NewsService {
                 newsAuditHistory.setComments(newsAuditReviewRequest.getComment());
                 newsAuditHistory.setAuditorId(admin.getId());
                 newsAuditHistoryMapper.insert(newsAuditHistory);
-                news.setStatus(NewsStatus.archived);
+                news.setStatus(NewsStatus.published);
                 news.setCurrentContentId(news.getPendingContentId());
                 news.setPendingContentId(null);
                 newsMapper.update(news);
-                notificationService.sendSystemNotificationToUser(news.getCompanyId(),"您的新闻已被通过",newsAuditReviewRequest.getComment(), RelatedObjectType.COMPANY,news.getCompanyId());
+                // String notificationContent = newsAuditReviewRequest.getComment() != null ? newsAuditReviewRequest.getComment() : "您的新闻已通过审核。";
+                // notificationService.sendSystemNotificationToUser(news.getCompanyId(),"您的新闻已被通过", notificationContent, RelatedObjectType.COMPANY,news.getCompanyId());
             }
             default -> throw new NewsServiceException("审核状态有误");
         }
