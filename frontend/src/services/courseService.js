@@ -1,4 +1,5 @@
 import api from './api';
+import { convertToSnakeCase } from '../utils/caseConverter';
 
 const courseService = {
   // 获取所有课程列表（公共）
@@ -13,12 +14,14 @@ const courseService = {
 
   // 上传课程
   uploadLesson(lessonData) {
-    return api.post('/admin/lesson/upload', lessonData);
+    const snakeCaseData = convertToSnakeCase(lessonData);
+    return api.post('/admin/lesson/upload', snakeCaseData);
   },
 
   // 更新课程
   updateLesson(uuid, lessonData) {
-    return api.put(`/admin/lesson/update?uuid=${uuid}`, lessonData);
+    const snakeCaseData = convertToSnakeCase(lessonData);
+    return api.put(`/admin/lesson/update?uuid=${uuid}`, snakeCaseData);
   },
 
   // 删除课程

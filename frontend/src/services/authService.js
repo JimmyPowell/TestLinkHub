@@ -1,4 +1,5 @@
 import apiClient from './api';
+import { convertToSnakeCase } from '../utils/caseConverter';
 
 // 辅助函数：显示部分隐藏的token
 const maskToken = (token) => {
@@ -17,8 +18,9 @@ export default {
     return apiClient.post('/auth/verify-code', { email, code });
   },
   registerEnterprise(data) {
-    console.debug('📝 企业注册:', data.company_name);
-    return apiClient.post('/auth/register/enterprise', data);
+    const snakeCaseData = convertToSnakeCase(data);
+    console.debug('📝 企业注册 (转换后):', snakeCaseData);
+    return apiClient.post('/auth/register/enterprise', snakeCaseData);
   },
   loginCompany(credentials) {
     console.debug(`🔑 企业登录请求: ${credentials.email}`);

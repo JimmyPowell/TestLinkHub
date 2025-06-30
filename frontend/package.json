@@ -9,12 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "ali-oss": "^6.17.1",
     "axios": "^1.10.0",
     "element-plus": "^2.10.2",
+    "jwt-decode": "^4.0.0",
     "pinia": "^3.0.3",
     "vue": "^3.5.13",
-    "vue-router": "^4.5.1",
-    "ali-oss": "^6.17.1"
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
