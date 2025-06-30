@@ -109,6 +109,12 @@ const routes = [
     redirect: '/root/home',
     children: [
       {
+        path: 'login',
+        name: 'RootLogin',
+        component: () => import('../views/RootLoginView.vue'),
+        meta: { title: '超级管理员登录' }
+      },
+      {
         path: 'home',
         name: 'RootAdmin',
         component: () => import('../views/dashboard/RootAdmin.vue'),
@@ -160,6 +166,7 @@ const router = createRouter({
 })
 
 import { useAuthStore } from '../store/auth';
+import { useRootAuthStore } from '../store/rootAuth';
 
 // 路由守卫，可以添加导航逻辑
 router.beforeEach(async (to, from, next) => {
@@ -171,16 +178,25 @@ router.beforeEach(async (to, from, next) => {
   }
   
   const authStore = useAuthStore();
-  const publicPages = ['/', '/register', '/register/email', '/register/verify-code', '/register/company-info'];
-  const authRequired = !publicPages.includes(to.path);
+  const rootAuthStore = useRootAuthStore();
 
-  // This is a simplified guard. For a full implementation, we'd verify the token with the backend.
-  // For now, we'll trust the token in localStorage and the state in Pinia.
-  if (authRequired && !authStore.isAuthenticated) {
-    // If the user is not authenticated and the page requires auth, redirect to login.
-    // A more robust implementation would try to verify the token with a backend call here.
-    // e.g., if (authStore.accessToken && !authStore.user) { await authStore.fetchUser(); }
-    next('/');
+  const publicPages = ['/', '/register', '/register/email', '/register/verify-code', '/register/company-info', '/root/login'];
+  const authRequired = to.matched.some(record => record.meta.requiresAuth);
+
+  if (authRequired) {
+    if (to.path.startsWith('/root')) {
+      if (!rootAuthStore.isAuthenticated) {
+        next('/root/login');
+      } else {
+        next();
+      }
+    } else {
+      if (!authStore.isAuthenticated) {
+        next('/');
+      } else {
+        next();
+      }
+    }
   } else {
     next();
   }

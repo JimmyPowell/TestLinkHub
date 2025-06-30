@@ -69,10 +69,10 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { useAuthStore } from '../../store/auth';
+import { useRootAuthStore } from '../../store/rootAuth';
 
 const router = useRouter();
-const authStore = useAuthStore();
+const rootAuthStore = useRootAuthStore();
 
 const goHome = () => {
   router.push('/dashboard');
@@ -84,7 +84,7 @@ const logout = () => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    authStore.logout();
+    rootAuthStore.logout();
     ElMessage.success('退出登录成功');
   }).catch(() => {
     // Cancelled

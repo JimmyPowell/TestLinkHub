@@ -43,4 +43,8 @@ export default {
         throw error;
       });
   },
+  loginRoot(credentials) {
+    console.debug(`🔑 Root登录请求: ${credentials.email}`);
+    return apiClient.post('/auth/login/user', credentials);
+  },
 };
