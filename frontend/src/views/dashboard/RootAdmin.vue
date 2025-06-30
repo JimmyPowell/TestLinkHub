@@ -63,7 +63,7 @@
             </div>
           </template>
           <div class="action-buttons">
-            <el-button type="primary" @click="navigate('UserManagement')">用户管理</el-button>
+            <el-button type="primary" @click="navigate('RootUserManagement')">用户管理</el-button>
             <el-button type="success" @click="navigate('CompanyManagement')">公司管理</el-button>
             <el-button type="warning" @click="navigate('SystemSettings')">系统设置</el-button>
             <el-button type="info" @click="navigate('Reports')">查看报告</el-button>
@@ -99,9 +99,7 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 
 const navigate = (routeName) => {
-  // In a real app, you would navigate to the corresponding route.
-  // router.push({ name: routeName });
-  console.log(`Navigating to ${routeName}`);
+  router.push({ name: routeName });
 };
 
 const recentActivities = ref([

@@ -103,4 +103,19 @@ export default {
   getSTSCredentials() {
     return apiClient.get('/oss/sts');
   },
+
+  /**
+   * Fetches all users for the root admin.
+   * @param {object} params - The query parameters.
+   * @returns {Promise} - The promise from the API call.
+   */
+  getRootUsers(params) {
+    const filteredParams = Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== null && value !== '') {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+    return apiClient.get('/root/users', { params: filteredParams });
+  },
 };

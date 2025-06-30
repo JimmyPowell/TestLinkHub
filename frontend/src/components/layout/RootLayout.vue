@@ -3,7 +3,7 @@
     <!-- Root Admin Sidebar -->
     <el-aside width="220px" class="root-sidebar">
       <div class="logo-container">
-        <span class="logo-text">Root Panel</span>
+        <span class="logo-text">测联汇 - Root Panel</span>
       </div>
       <el-menu
         router
@@ -12,21 +12,25 @@
         background-color="#1f2937"
         text-color="#d1d5db"
         active-text-color="#ffffff">
-        <el-menu-item index="/root">
-          <el-icon><component is="Monitor" /></el-icon>
-          <span>系统概览</span>
+        <el-menu-item index="/root/news-management">
+          <el-icon><component is="Collection" /></el-icon>
+          <span>新闻管理</span>
         </el-menu-item>
-        <el-menu-item index="/root/user-management">
-          <el-icon><component is="User" /></el-icon>
-          <span>用户管理</span>
+        <el-menu-item index="/root/meeting-management">
+          <el-icon><component is="VideoCamera" /></el-icon>
+          <span>会议管理</span>
+        </el-menu-item>
+        <el-menu-item index="/root/course-management">
+          <el-icon><component is="Reading" /></el-icon>
+          <span>课程管理</span>
         </el-menu-item>
         <el-menu-item index="/root/company-management">
           <el-icon><component is="OfficeBuilding" /></el-icon>
           <span>公司管理</span>
         </el-menu-item>
-        <el-menu-item index="/root/system-settings">
-          <el-icon><component is="Setting" /></el-icon>
-          <span>系统设置</span>
+        <el-menu-item index="/root/user-management">
+          <el-icon><component is="User" /></el-icon>
+          <span>用户管理</span>
         </el-menu-item>
       </el-menu>
     </el-aside>

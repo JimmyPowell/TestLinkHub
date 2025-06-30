@@ -42,7 +42,7 @@ const routes = [
       // 默认重定向到第一步
       {
         path: '',
-        redirect: '/register/email'
+        redirect: 'email'
       }
     ]
   },
@@ -106,20 +106,31 @@ const routes = [
   {
     path: '/root',
     component: RootLayout,
-    redirect: '/root/overview',
+    redirect: '/root/home',
     children: [
       {
-        path: 'overview',
+        path: 'home',
         name: 'RootAdmin',
         component: () => import('../views/dashboard/RootAdmin.vue'),
-        meta: { title: '系统概览' }
+        meta: { requiresAuth: true, role: 'ROOT', title: '超级管理员面板' }
       },
-      // We can add placeholders for other root pages
       {
-        path: 'user-management',
-        name: 'RootUserManagement',
-        component: { template: '<div>用户管理页面，待实现</div>' },
-        meta: { title: '用户管理' }
+        path: 'news-management',
+        name: 'RootNewsManagement',
+        component: { template: '<div>新闻管理页面，待实现</div>' },
+        meta: { title: '新闻管理' }
+      },
+      {
+        path: 'meeting-management',
+        name: 'RootMeetingManagement',
+        component: { template: '<div>会议管理页面，待实现</div>' },
+        meta: { title: '会议管理' }
+      },
+      {
+        path: 'course-management',
+        name: 'RootCourseManagement',
+        component: { template: '<div>课程管理页面，待实现</div>' },
+        meta: { title: '课程管理' }
       },
       {
         path: 'company-management',
@@ -128,10 +139,10 @@ const routes = [
         meta: { title: '公司管理' }
       },
       {
-        path: 'system-settings',
-        name: 'RootSystemSettings',
-        component: { template: '<div>系统设置页面，待实现</div>' },
-        meta: { title: '系统设置' }
+        path: 'user-management',
+        name: 'RootUserManagement',
+        component: () => import('../views/dashboard/RootUserManagement.vue'),
+        meta: { requiresAuth: true, role: 'ROOT', title: '用户管理' }
       }
     ]
   },

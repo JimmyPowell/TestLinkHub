@@ -17,6 +17,8 @@ public class UserResponse {
     private String avatarUrl;
     private Gender gender;
     private Long companyId;
+    private String companyName;
+    private String companyUuid;
     private UserRole role;
     private UserStatus status;
     private String description;

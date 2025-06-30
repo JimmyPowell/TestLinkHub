@@ -113,4 +113,12 @@ public interface UserMapper {
      */
     @Update("UPDATE user SET company_id = NULL, updated_at = NOW() WHERE uuid = #{uuid}")
     int removeUserFromCompany(@Param("uuid") String uuid);
+
+    /**
+     * 根据ID查询用户
+     * @param id 用户ID
+     * @return 用户对象，如果不存在则返回null
+     */
+    @Select("SELECT * FROM user WHERE id = #{id}")
+    User findById(@Param("id") Long id);
 }
