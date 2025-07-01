@@ -2,6 +2,7 @@ package tech.cspioneer.backend.mapper;
 
 import org.apache.ibatis.annotations.*;
 import tech.cspioneer.backend.entity.Company;
+import java.util.List;
 
 @Mapper
 public interface CompanyMapper {
@@ -55,5 +56,32 @@ public interface CompanyMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Company company);
 
+    /**
+     * 物理删除公司（测试专用）
+     * @param email 公司邮箱
+     * @return 受影响的行数
+     */
+    @Delete("DELETE FROM company WHERE email = #{email}")
+    int deleteByEmail(String email);
+
+    /**
+     * 根据公司代码删除公司
+     * @param companyCode 公司代码
+     * @return 受影响的行数
+     */
+    @Delete("DELETE FROM company WHERE company_code = #{companyCode}")
+    int deleteByCompanyCode(@Param("companyCode") String companyCode);
+
+    /**
+     * 删除所有公司数据（测试用）
+     */
+    @Delete("DELETE FROM company")
+    void deleteAll();
+
+    /**
+     * 重置company表自增主键（测试用）
+     */
+    @Update("ALTER TABLE company AUTO_INCREMENT = 1")
+    void resetAutoIncrement();
 
 }
