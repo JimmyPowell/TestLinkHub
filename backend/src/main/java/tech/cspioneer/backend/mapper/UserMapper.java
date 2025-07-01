@@ -13,7 +13,7 @@ public interface UserMapper {
      * @param email 用户邮箱
      * @return 用户对象，如果不存在则返回null
      */
-    @Select("SELECT * FROM user WHERE email = #{email}")
+    @Select("SELECT * FROM \"user\" WHERE \"email\" = #{email}")
     User findByEmail(String email);
 
     /**
@@ -21,7 +21,7 @@ public interface UserMapper {
      * @param uuid 用户UUID
      * @return 用户对象，如果不存在则返回null
      */
-    @Select("SELECT * FROM user WHERE uuid = #{uuid}")
+    @Select("SELECT * FROM \"user\" WHERE \"uuid\" = #{uuid}")
     User findByUuid(String uuid);
 
     /**
@@ -29,7 +29,7 @@ public interface UserMapper {
      * @param user 用户对象
      * @return 受影响的行数
      */
-    @Insert("INSERT INTO user(uuid, name, email, password, phone_number, address, avatar_url, gender, company_id, role, status, description, post_count, lesson_count, meeting_count, created_at, updated_at) " +
+    @Insert("INSERT INTO \"user\"(\"uuid\", \"name\", \"email\", \"password\", \"phone_number\", \"address\", \"avatar_url\", \"gender\", \"company_id\", \"role\", \"status\", \"description\", \"post_count\", \"lesson_count\", \"meeting_count\", \"created_at\", \"updated_at\") " +
             "VALUES(#{uuid}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address}, #{avatarUrl}, #{gender}, #{companyId}, #{role}, #{status}, #{description}, #{postCount}, #{lessonCount}, #{meetingCount}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(User user);
@@ -38,14 +38,14 @@ public interface UserMapper {
      * 查询所有活跃用户
      * @return 用户列表
      */
-    @Select("SELECT * FROM user WHERE is_deleted = 0 AND status = 'ACTIVE'")
+    @Select("SELECT * FROM \"user\" WHERE \"is_deleted\" = 0 AND \"status\" = 'active'")
     List<User> findAllActiveUsers();
 
     /**
      * 查询所有活跃用户的ID
      * @return 用户ID列表
      */
-    @Select("SELECT id FROM user WHERE is_deleted = 0 AND status = 'ACTIVE'")
+    @Select("SELECT \"id\" FROM \"user\" WHERE \"is_deleted\" = 0 AND \"status\" = 'active'")
     List<Long> findAllActiveUserIds();
 
     /**
@@ -53,7 +53,7 @@ public interface UserMapper {
      * @param companyId 公司ID
      * @return 用户ID列表
      */
-    @Select("SELECT id FROM user WHERE company_id = #{companyId} AND is_deleted = 0 AND status = 'ACTIVE'")
+    @Select("SELECT \"id\" FROM \"user\" WHERE \"company_id\" = #{companyId} AND \"is_deleted\" = 0 AND \"status\" = 'active'")
     List<Long> findActiveUserIdsByCompanyId(@Param("companyId") Long companyId);
 
     /**
@@ -61,7 +61,7 @@ public interface UserMapper {
      * @param user 用户对象
      * @return 受影响的行数
      */
-    @Update("UPDATE user SET name = #{name}, phone_number = #{phoneNumber}, address = #{address}, avatar_url = #{avatarUrl}, gender = #{gender}, company_id = #{companyId}, role = #{role}, status = #{status}, description = #{description}, updated_at = #{updatedAt} WHERE uuid = #{uuid}")
+    @Update("UPDATE \"user\" SET \"name\" = #{name}, \"phone_number\" = #{phoneNumber}, \"address\" = #{address}, \"avatar_url\" = #{avatarUrl}, \"gender\" = #{gender}, \"company_id\" = #{companyId}, \"role\" = #{role}, \"status\" = #{status}, \"description\" = #{description}, \"updated_at\" = #{updatedAt} WHERE \"uuid\" = #{uuid}")
     int update(User user);
 
     /**
@@ -69,7 +69,7 @@ public interface UserMapper {
      * @param uuid 用户UUID
      * @return 受影响的行数
      */
-    @Update("UPDATE user SET is_deleted = 1, updated_at = NOW() WHERE uuid = #{uuid}")
+    @Update("UPDATE \"user\" SET \"is_deleted\" = 1, \"updated_at\" = NOW() WHERE \"uuid\" = #{uuid}")
     int deleteByUuid(String uuid);
 
     /**
@@ -78,14 +78,14 @@ public interface UserMapper {
      * @param limit 数量
      * @return 用户列表
      */
-    @Select("SELECT * FROM user WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    @Select("SELECT * FROM \"user\" WHERE \"is_deleted\" = 0 ORDER BY \"created_at\" DESC LIMIT #{limit} OFFSET #{offset}")
     List<User> findUsersWithPagination(@Param("offset") int offset, @Param("limit") int limit);
 
     /**
      * 计算用户总数
      * @return 用户总数
      */
-    @Select("SELECT COUNT(*) FROM user WHERE is_deleted = 0")
+    @Select("SELECT COUNT(*) FROM \"user\" WHERE \"is_deleted\" = 0")
     long countAllUsers();
 
     /**
@@ -95,7 +95,7 @@ public interface UserMapper {
      * @param limit 数量
      * @return 用户列表
      */
-    @Select("SELECT * FROM user WHERE company_id = #{companyId} AND is_deleted = 0 ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    @Select("SELECT * FROM \"user\" WHERE \"company_id\" = #{companyId} AND \"is_deleted\" = 0 ORDER BY \"created_at\" DESC LIMIT #{limit} OFFSET #{offset}")
     List<User> findUsersWithPaginationByCompanyId(@Param("companyId") Long companyId, @Param("offset") int offset, @Param("limit") int limit);
 
     /**
@@ -103,7 +103,7 @@ public interface UserMapper {
      * @param companyId 公司ID
      * @return 用户总数
      */
-    @Select("SELECT COUNT(*) FROM user WHERE company_id = #{companyId} AND is_deleted = 0")
+    @Select("SELECT COUNT(*) FROM \"user\" WHERE \"company_id\" = #{companyId} AND \"is_deleted\" = 0")
     long countAllUsersByCompanyId(@Param("companyId") Long companyId);
 
     /**
@@ -111,7 +111,7 @@ public interface UserMapper {
      * @param uuid 用户UUID
      * @return 受影响的行数
      */
-    @Update("UPDATE user SET company_id = NULL, updated_at = NOW() WHERE uuid = #{uuid}")
+    @Update("UPDATE \"user\" SET \"company_id\" = NULL, \"updated_at\" = NOW() WHERE \"uuid\" = #{uuid}")
     int removeUserFromCompany(@Param("uuid") String uuid);
 
     /**
@@ -119,6 +119,6 @@ public interface UserMapper {
      * @param id 用户ID
      * @return 用户对象，如果不存在则返回null
      */
-    @Select("SELECT * FROM user WHERE id = #{id}")
+    @Select("SELECT * FROM \"user\" WHERE \"id\" = #{id}")
     User findById(@Param("id") Long id);
 }
