@@ -226,7 +226,7 @@ public interface NewsMapper {
 
     // 查询新闻历史记录
     @Select({
-        "SELECT nh.uuid, nh.audit_status as auditStatus, nh.auditor_uuid as auditorUUid, ",
+        "SELECT nh.audit_status as auditStatus, nh.auditor_id as auditorUUid, ",
         "nh.comments, n.company_id as companyId, nc.created_at as contentCreatedAt, ",
         "nc.cover_image_url as coverImageUrl, nh.created_at as createdAt, ",
         "nc.uuid as newsContentUUid, nc.publisher_id as publisherId, ",

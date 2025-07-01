@@ -85,4 +85,16 @@ public interface MeetingParticipantMapper {
     default boolean existsByMeetingIdAndUserId(Long meetingId, Long userId) {
         return countByMeetingIdAndUserId(meetingId, userId) > 0;
     }
+
+    /**
+     * 根据用户ID删除该用户所有参会申请（测试用）
+     */
+    @Delete("DELETE FROM meeting_participant WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
+
+    /**
+     * 根据会议ID查找所有参会申请（测试用）
+     */
+    @Select("SELECT * FROM meeting_participant WHERE meeting_id = #{meetingId} AND is_deleted = 0")
+    List<MeetingParticipant> findPartsByMeetingId(@Param("meetingId") Long meetingId);
 }

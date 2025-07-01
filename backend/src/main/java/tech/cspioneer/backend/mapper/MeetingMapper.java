@@ -55,6 +55,12 @@ public interface MeetingMapper {
 """)
     Meeting findByUuid(String meetingUuid);
 
+    /**
+     * 根据uuid查找会议（包含已软删除的,用于测试）
+     */
+    @Select("SELECT * FROM meeting WHERE uuid = #{meetingUuid} LIMIT 1")
+    Meeting findByUuidIncludeDeleted(String meetingUuid);
+
     //获取所有状态为已发布的会议
     @Select("SELECT * FROM meeting WHERE status = 'published' AND is_deleted = 0")
     List<Meeting> findPublishedMeetings();
@@ -67,6 +73,16 @@ public interface MeetingMapper {
 """)
     List<Long> findMeetingIdsByCreatorId(@Param("creatorId") Long creatorId);
 
+    /**
+     * 删除所有会议数据（测试用）
+     */
+    @Delete("DELETE FROM meeting")
+    void deleteAll();
 
+    /**
+     * 重置meeting表自增主键（测试用）
+     */
+    @Update("ALTER TABLE meeting AUTO_INCREMENT = 1")
+    void resetAutoIncrement();
 
 }

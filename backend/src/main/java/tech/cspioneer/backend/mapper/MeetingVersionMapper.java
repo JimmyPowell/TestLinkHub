@@ -135,4 +135,17 @@ public interface MeetingVersionMapper {
     List<MeetingVersion> searchByUuid(@Param("uuid") String uuid,
                                       @Param("offset") int offset,
                                       @Param("limit") int limit);
+
+    /**
+     * 删除所有会议版本数据（测试用）
+     */
+    @Delete("DELETE FROM meeting_version")
+    void deleteAll();
+
+    /**
+     * 重置meeting_version表自增主键（测试用）
+     */
+    @Update("ALTER TABLE meeting_version AUTO_INCREMENT = 1")
+    void resetAutoIncrement();
+
 }

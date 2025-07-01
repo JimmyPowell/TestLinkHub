@@ -13,7 +13,7 @@ public interface UserMapper {
      * @param email 用户邮箱
      * @return 用户对象，如果不存在则返回null
      */
-    @Select("SELECT * FROM user WHERE email = #{email}")
+    @Select("SELECT * FROM user WHERE email = #{email} AND is_deleted = 0")
     User findByEmail(String email);
 
     /**
@@ -141,4 +141,24 @@ public interface UserMapper {
      */
     @Select("SELECT * FROM user WHERE id = #{id}")
     User findById(@Param("id") Long id);
+
+    /**
+     * 物理删除用户（测试专用）
+     * @param email 用户邮箱
+     * @return 受影响的行数
+     */
+    @Delete("DELETE FROM user WHERE email = #{email}")
+    int deleteByEmail(String email);
+
+    /**
+     * 删除所有用户数据（测试用）
+     */
+    @Delete("DELETE FROM user")
+    void deleteAll();
+
+    /**
+     * 重置user表自增主键（测试用）
+     */
+    @Update("ALTER TABLE user AUTO_INCREMENT = 1")
+    void resetAutoIncrement();
 }
