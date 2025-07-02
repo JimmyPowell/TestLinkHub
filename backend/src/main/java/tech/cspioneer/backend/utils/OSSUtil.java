@@ -57,11 +57,22 @@ public class OSSUtil {
     @Value("${oss.durationSeconds}")
     private Long durationSeconds;
 
+    private OSSClientBuilder ossClientBuilder = new OSSClientBuilder();
+    private DefaultAcsClient acsClient;
+
+    public void setOssClientBuilder(OSSClientBuilder builder) {
+        this.ossClientBuilder = builder;
+    }
+
+    public void setAcsClient(DefaultAcsClient acsClient) {
+        this.acsClient = acsClient;
+    }
+
     public STSTemporaryCredentials generateSTSCredentials() throws com.aliyuncs.exceptions.ClientException {
         DefaultProfile.addEndpoint(this.region, "Sts", endpointSts);
         IClientProfile profile = DefaultProfile.getProfile(this.region, accessKeyIdRam, accessKeySecretRam);
 
-        DefaultAcsClient client = new DefaultAcsClient(profile);
+        DefaultAcsClient client = this.acsClient != null ? this.acsClient : new DefaultAcsClient(profile);
         AssumeRoleRequest request = new AssumeRoleRequest();
         request.setSysMethod(MethodType.POST);
         request.setRoleArn(roleArn);
@@ -80,7 +91,7 @@ public class OSSUtil {
     }
 
     private OSS getOSSClient() {
-        return new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+        return ossClientBuilder.build(endpoint, accessKeyId, accessKeySecret);
     }
 
     public void createBucket(String bucketName) {
