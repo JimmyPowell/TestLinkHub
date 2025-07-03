@@ -1,0 +1,14 @@
+node-modules/
+miniprogram_npm/
+dist/
+build/
+*.map
+project.config.json
+project.private.config.json
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+unpackage/

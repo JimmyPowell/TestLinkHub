@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "课程",
+  "usingComponents": {
+    "uni-easyinput": "../../node-modules/@dcloudio/uni-ui/lib/uni-easyinput/uni-easyinput",
+    "uni-load-more": "../../node-modules/@dcloudio/uni-ui/lib/uni-load-more/uni-load-more"
+  }
+}
