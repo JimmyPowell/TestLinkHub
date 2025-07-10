@@ -2,7 +2,7 @@ import axios from 'axios';
 import router from '../router'; // 引入 router
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8087/api',
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },

@@ -14,10 +14,6 @@
         background-color="#ffffff"
         text-color="#333333"
         active-text-color="#409EFF">
-        <el-menu-item index="/dashboard/home">
-          <el-icon><component is="House" /></el-icon>
-          <span>首页</span>
-        </el-menu-item>
         <el-menu-item index="/dashboard/news">
           <el-icon><component is="Collection" /></el-icon>
           <span>新闻动态</span>

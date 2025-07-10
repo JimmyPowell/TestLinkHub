@@ -1,0 +1,34 @@
+@startuml
+
+title System Sequence Diagram
+
+actor Client
+participant "Controller Layer" as Controller
+participant "Service Layer" as Service
+participant "Mapper/DAO Layer" as Mapper
+database "Database" as DB
+
+Client -> Controller: 1. HTTP Request
+activate Controller
+
+Controller -> Service: 2. Call business logic method
+activate Service
+
+Service -> Mapper: 3. Request data
+activate Mapper
+
+Mapper -> DB: 4. Execute SQL Query
+activate DB
+DB --> Mapper: 5. Return result set
+deactivate DB
+
+Mapper --> Service: 6. Return data objects
+deactivate Mapper
+
+Service --> Controller: 7. Return DTOs
+deactivate Service
+
+Controller --> Client: 8. HTTP Response
+deactivate Controller
+
+@enduml

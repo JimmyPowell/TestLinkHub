@@ -14,11 +14,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.AuthenticationEntryPoint;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
@@ -44,22 +43,20 @@ public class SecurityConfig {
      * @throws Exception 如果配置出错
      */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174", "http://localhost:5175")); // Allow frontend origins
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+    public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.addAllowedOriginPattern("*"); // Use addAllowedOriginPattern to allow all origins
+        config.setAllowedHeaders(Collections.singletonList("*"));
+        config.setAllowedMethods(Collections.singletonList("*"));
+        source.registerCorsConfiguration("/**", config);
+        return new CorsFilter(source);
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // 启用CORS
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             // 禁用 CSRF 保护，因为我们使用的是无状态 API
             .csrf(AbstractHttpConfigurer::disable)
             // 配置会话管理，使用无状态会话
@@ -115,6 +112,8 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable)
             // 禁用表单登录
             .formLogin(AbstractHttpConfigurer::disable)
+            // 添加CORS过滤器
+            .addFilterBefore(corsFilter(), UsernamePasswordAuthenticationFilter.class)
             // 添加JWT过滤器
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             // 配置异常处理

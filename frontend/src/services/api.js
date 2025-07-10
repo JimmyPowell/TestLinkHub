@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.PROD ? 'http://testlinkhub.cspioneer.tech:8087/api' : '/api',
   headers: {
     'Content-Type': 'application/json',
   },

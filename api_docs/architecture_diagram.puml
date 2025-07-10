@@ -1,0 +1,30 @@
+@startuml
+!theme vibrant
+
+title System Architecture Diagram
+
+skinparam rectangle {
+    BorderColor #555
+    BackgroundColor<<Controller>> #87CEEB
+    BackgroundColor<<Service>> #98FB98
+    BackgroundColor<<Mapper>> #FFDAB9
+    BackgroundColor<<Database>> #D3D3D3
+}
+
+actor Client
+
+rectangle "Controller Layer" as Controller <<Controller>>
+rectangle "Service Layer" as Service <<Service>>
+rectangle "Mapper/DAO Layer" as Mapper <<Mapper>>
+database "Database" as DB <<Database>>
+
+Client -down-> Controller : HTTP Request
+Controller -down-> Service : Calls business logic
+Service -down-> Mapper : Accesses data
+Mapper -down-> DB : SQL Query
+DB -up-> Mapper : Returns data
+Mapper -up-> Service : Returns data objects
+Service -up-> Controller : Returns DTOs
+Controller -up-> Client : HTTP Response
+
+@enduml

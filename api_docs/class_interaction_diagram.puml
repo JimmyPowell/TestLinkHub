@@ -1,0 +1,117 @@
+@startuml
+!theme vibrant
+
+package "Controller" {
+    package "admin" {
+        [AdminLessonController]
+        [AdminMeetingController]
+        [AdminNewsController]
+        [AdminNotificationController]
+        [AdminUserManagementController]
+        [CompanyUserManagementController]
+        [RootMeetingController]
+    }
+    package "client" {
+        [ClientLessonController]
+        [ClientNewsController]
+        [NotificationController]
+        [UserController]
+    }
+    package "root" {
+        [RootCompanyManagementController]
+        [RootUserManagementController]
+    }
+    [AuthController]
+    [MeetingController]
+    [OSSController]
+    [TestController]
+}
+
+package "Service" {
+    [AdminUserManagementService]
+    [AuthService]
+    [CompanyUserManagementService]
+    [LessonService]
+    [MeetingPartService]
+    [MeetingService]
+    [NewsService]
+    [NotificationService]
+    [OSSService]
+    [RootCompanyManagementService]
+    [RootUserManagementService]
+    [UserService]
+}
+
+package "Mapper" {
+    [AuditHistoryMapper]
+    [CompanyMapper]
+    [CompanyUserSearchMapper]
+    [LessonAuditHistoryMapper]
+    [LessonMapper]
+    [LessonResourceMapper]
+    [LessonVersionMapper]
+    [MeetingAuditHistoryMapper]
+    [MeetingMapper]
+    [MeetingParticipantMapper]
+    [MeetingVersionMapper]
+    [NewsAttachmentRelatedMapper]
+    [NewsAuditHistoryMapper]
+    [NewsContentMapper]
+    [NewsMapper]
+    [NotificationMapper]
+    [RootCompanyManagementMapper]
+    [RootUserManagementMapper]
+    [UserDetailMapper]
+    [UserMapper]
+}
+
+' Relationships
+AdminLessonController --> LessonService
+AdminMeetingController --> MeetingService
+AdminMeetingController --> MeetingPartService
+AdminNewsController --> NewsService
+AdminNotificationController --> NotificationService
+AdminUserManagementController --> AdminUserManagementService
+CompanyUserManagementController --> CompanyUserManagementService
+RootMeetingController --> MeetingService
+
+ClientLessonController --> LessonService
+ClientNewsController --> NewsService
+NotificationController --> NotificationService
+UserController --> UserService
+
+RootCompanyManagementController --> RootCompanyManagementService
+RootUserManagementController --> RootUserManagementService
+
+AuthController --> AuthService
+MeetingController --> MeetingService
+OSSController --> OSSService
+
+' Service to Mapper Relationships
+AuthService --> UserMapper
+AuthService --> CompanyMapper
+AdminUserManagementService --> UserMapper
+CompanyUserManagementService --> UserMapper
+CompanyUserManagementService --> CompanyUserSearchMapper
+LessonService --> LessonMapper
+LessonService --> LessonVersionMapper
+LessonService --> LessonResourceMapper
+LessonService --> LessonAuditHistoryMapper
+MeetingService --> MeetingMapper
+MeetingService --> MeetingVersionMapper
+MeetingService --> MeetingAuditHistoryMapper
+MeetingPartService --> MeetingParticipantMapper
+NewsService --> NewsMapper
+NewsService --> NewsContentMapper
+NewsService --> NewsAuditHistoryMapper
+NewsService --> NewsAttachmentRelatedMapper
+NotificationService --> NotificationMapper
+OSSService --> UserMapper
+RootCompanyManagementService --> RootCompanyManagementMapper
+RootCompanyManagementService --> CompanyMapper
+RootUserManagementService --> RootUserManagementMapper
+RootUserManagementService --> UserMapper
+UserService --> UserMapper
+UserService --> UserDetailMapper
+
+@enduml

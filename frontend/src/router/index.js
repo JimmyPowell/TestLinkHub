@@ -50,14 +50,14 @@ const routes = [
   {
     path: '/dashboard',
     component: DashboardLayout,
-    redirect: '/dashboard/home',
+    redirect: '/dashboard/news', // 重定向到新闻页面
     children: [
-      {
-        path: 'home',
-        name: 'DashboardHome',
-        component: DashboardHome,
-        meta: { title: '首页' }
-      },
+      // {
+      //   path: 'home',
+      //   name: 'DashboardHome',
+      //   component: DashboardHome,
+      //   meta: { title: '首页' }
+      // },
       {
         path: 'news',
         name: 'News',
