@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "ali-oss": "^6.23.0",
+    "dayjs": "^1.11.13",
+    "jwt-decode": "^4.0.0"
+  }
+}

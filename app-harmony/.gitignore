@@ -1,0 +1,11 @@
+build/
+*.hap
+*.app
+oh_modules/
+.hvigor/
+.idea/
+*.iml
+local.properties
+.DS_Store
+Thumbs.db
+*.log

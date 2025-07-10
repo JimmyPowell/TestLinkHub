@@ -1,0 +1,27 @@
+# Dependencies
+/node_modules
+/frontend/node_modules
+
+# Build files
+/frontend/dist
+/backend/target
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-workspace
+
+# System files
+.DS_Store
+
+# Config files with secrets
+/backend/src/main/resources/application.properties

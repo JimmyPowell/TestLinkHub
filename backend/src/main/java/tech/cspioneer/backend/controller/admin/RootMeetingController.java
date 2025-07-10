@@ -1,0 +1,180 @@
+package tech.cspioneer.backend.controller.admin;
+
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import tech.cspioneer.backend.entity.MeetingParticipant;
+import tech.cspioneer.backend.entity.MeetingVersion;
+import tech.cspioneer.backend.entity.dto.request.MeetingCreateRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingPartReviewRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingDeleteRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingDeleteRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingReviewRequest;
+import tech.cspioneer.backend.entity.dto.request.MeetingUpdateRequest;
+import tech.cspioneer.backend.entity.dto.response.MeetingApplicationResponse;
+import tech.cspioneer.backend.entity.dto.response.RootReviewResponse;
+import tech.cspioneer.backend.model.response.ApiResponse;
+import tech.cspioneer.backend.service.MeetingPartService;
+import tech.cspioneer.backend.service.MeetingService;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/root/meeting")
+public class RootMeetingController {
+
+
+    //会议审核-/api/root/meeting/review管理员审核创建会议+
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @PostMapping("/review")
+    public ResponseEntity<ApiResponse<Void>> reviewMeeting(
+            @RequestBody MeetingReviewRequest res,
+            @AuthenticationPrincipal String useruuid){
+        meetingService.reviewMeetingCreate(res, useruuid);
+        return ResponseEntity.ok(new ApiResponse<>(200,"审核完成",null));
+    }
+
+    //审核会议浏览-/api/root/meeting/reviewlist/{page}{size}+
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @GetMapping("/reviewlist")
+    public ResponseEntity<ApiResponse<List<RootReviewResponse>>> getMeetingReviewList(
+            @RequestParam int page,
+            @RequestParam int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String name,
+            @AuthenticationPrincipal String useruuid
+    ){
+        List<RootReviewResponse> reviewList = meetingService.getPendingReviewList(page, size, status, name);
+        return ResponseEntity.ok(ApiResponse.success(200, "查询成功", reviewList));
+    }
+
+
+    //会议详情-/api/root/meeting/meeting_version_uuid(这是审核的时候用的，所以前端应该是会议版本列表)+
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @GetMapping("/{meetingVersionUuid}")
+    public ResponseEntity<ApiResponse<RootReviewResponse>> getMeetingDetails(
+            @PathVariable String meetingVersionUuid
+    ){
+        RootReviewResponse details = meetingService.getMeetingVersionDetails(meetingVersionUuid);
+        return ResponseEntity.ok(ApiResponse.success(200, "获取会议版本详情成功", details));
+    }
+
+
+
+
+    @Autowired
+    private MeetingService meetingService;
+    @Autowired
+    private MeetingPartService meetingPartService;
+
+    // 创建会议
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @PostMapping("/create")
+    public ResponseEntity<ApiResponse<Void>> createMeeting(
+            @RequestBody MeetingCreateRequest res,
+            @AuthenticationPrincipal String useruuid) {
+
+        meetingService.createMeeting(res, useruuid);
+
+        System.out.println("会议创建成功：" + useruuid);
+        return ResponseEntity.ok(ApiResponse.success(200, "会议创建成功", null));
+    }
+
+    // 更新会议
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @PutMapping("/update")
+    public ResponseEntity<ApiResponse<Void>> updateMeeting(
+            @RequestBody MeetingUpdateRequest res,
+            @AuthenticationPrincipal String useruuid) {
+        meetingService.updateMeeting(res, useruuid);
+
+        System.out.println("会议更新成功：" + useruuid);
+        return ResponseEntity.ok(ApiResponse.success(200, "会议更新成功", null));
+    }
+
+    // 删除会议（仅公司身份可访问）
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @DeleteMapping("/delete")
+    public ResponseEntity<ApiResponse<Void>> deleteMeeting(
+            @RequestBody MeetingDeleteRequest req,
+            @AuthenticationPrincipal String useruuid) {
+
+        meetingService.deleteMeeting(req.getMeetingUuid());
+
+        System.out.println("会议删除成功：" + req.getMeetingUuid());
+        return ResponseEntity.ok(ApiResponse.success(200, "会议删除成功", null));
+    }
+
+
+
+
+
+    //获取参会申请列表-/api/admin/meeting/part/list/{page}{size}
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @GetMapping("/list")
+    public ResponseEntity<ApiResponse<List<MeetingApplicationResponse>>> getMeetingPartList(
+            @AuthenticationPrincipal String useruuid,
+            @RequestParam(required = false) String status,
+            @RequestParam int page,
+            @RequestParam int size
+    ){
+        List<MeetingApplicationResponse> list = meetingPartService.getMeetingPartsByCreator(useruuid, status, page, size);
+
+        //查找改用户名下的会议的申请
+        return ResponseEntity.ok(ApiResponse.success(200, "返回列表成功", list));
+    }
+
+
+    //获取参会申请详细信息-/api/admin/meeting/part/{part_uuid}
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @GetMapping("/part")
+    public ResponseEntity<ApiResponse<MeetingParticipant>> getpartdetails(
+            @RequestParam String partUuid,
+            @AuthenticationPrincipal String useruuid
+    ){
+        MeetingParticipant part = meetingPartService.findMeetingPartByUuid(partUuid);
+        if (part == null) {
+            return ResponseEntity.status(404).body(ApiResponse.error(404, "找不到该参会申请"));
+        }
+
+        //1.判断是不是会议创建人
+        Boolean is = meetingPartService.isCreator(useruuid,part);
+        if(!is){
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "您不是会议创建者，无权访问"));
+        }
+
+        //2.获取参会申请详细信息
+        return ResponseEntity.ok(ApiResponse.success(200, "获取参会详细信息成功", part));
+
+    }
+
+
+    //审核参会-/api/admin/meeting/partreview/
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @PostMapping("/partreview")
+    public ResponseEntity<ApiResponse<Void>> reviewMeetingParticipant(
+            @RequestBody MeetingPartReviewRequest req,
+            @AuthenticationPrincipal String useruuid
+    ) {
+        //1.查找对应的会议
+        MeetingParticipant part = meetingPartService.findMeetingPartByUuid(req.getPartUuid());
+        if (part == null) {
+            return ResponseEntity.status(404).body(ApiResponse.error(404, "找不到该参会申请"));
+        }
+        
+        //2.确定是不是会议创建者
+        boolean isCreator = meetingPartService.isCreator(useruuid, part);
+        if (!isCreator) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "您不是会议创建者，无法审核此申请"));
+        }
+        //3.保存审核参会信息
+        meetingPartService.reviewpart(req);
+        return ResponseEntity.ok(ApiResponse.success(200, "审核完成", null));
+    }
+
+
+}
